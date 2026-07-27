@@ -12,6 +12,7 @@
 		"cf-typegen": "wrangler types"
 	},
 	"dependencies": {
+		"hono": "^4.12.32",
 		"react": "^19.2.7",
 		"react-dom": "^19.2.7"
 	},
