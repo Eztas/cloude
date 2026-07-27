@@ -1,12 +1,18 @@
-export default {
-  fetch(request) {
-    const url = new URL(request.url);
+import { Hono } from 'hono'
 
-    if (url.pathname.startsWith("/api/")) {
-      return Response.json({
-        name: "Cloudflare",
-      });
-    }
-		return new Response(null, { status: 404 });
-  },
-} satisfies ExportedHandler<Env>;
+// Cloudflare Workers の Env (Bindings) 型を適用
+const app = new Hono<{ Bindings: Env }>()
+
+// APIルートの定義
+app.get('/api/hello', (c) => {
+  return c.json({
+    message: 'Hello from Hono & Cloudflare Workers!',
+  })
+})
+
+// 存在しない API ルートへのレスポンスなど
+app.all('/api/*', (c) => {
+  return c.json({ error: 'Not Found' }, 404)
+})
+
+export default app

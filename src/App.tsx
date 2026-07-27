@@ -33,17 +33,17 @@ function App() {
             </button>
           </li>
           <li>
-          <button
-            className="counter"
-            onClick={() => {
-              fetch('/api/')
-                .then((res) => res.json())
-                .then((data) => setName(data.name))
-            }}
-            aria-label='get name'
-          >
-            Name from API is: {name}
-          </button>
+            <button
+              className="counter"
+              onClick={() => {
+                fetch('/api/hello')
+                  .then((res) => res.json())
+                  .then((data) => setName(data.message))
+              }}
+              aria-label='get name'
+            >
+              {name}
+            </button>
           </li>
         </ul>
 
