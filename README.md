@@ -180,6 +180,10 @@ app.post('/api/game/guess', async (c) => {
 	1. TypeScriptを選択
 	2. Oxlintを選択(ESLintよりも速い)
 2. `pnpm add hono`
+3. KVの設定（`wrangler.jsonc`でKVのバインド設定）
+4. `npx wrangler kv namespace create cloude_kv`で本番用とローカル用の2つの使い分け
+  1. `For local dev, do you want to connect to the remote resource instead of a local resource? - no`にしたら可能
+  2. ローカルはデフォルトで存在する
 
 ## React + TypeScript + Vite
 

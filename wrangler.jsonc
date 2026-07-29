@@ -16,6 +16,12 @@
 	"upload_source_maps": true,
 	"compatibility_flags": [
 		"nodejs_compat"
+	],
+	"kv_namespaces": [
+		{
+			"binding": "cloude_kv",
+			"id": "2766923ccb9d47c9b39d25847735912a"
+		}
 	]
 	/**
 	 * Smart Placement
