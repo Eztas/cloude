@@ -16,16 +16,10 @@
 	"upload_source_maps": true,
 	"compatibility_flags": [
 		"nodejs_compat"
-	],
-	"d1_databases": [
-		{
-			"binding": "cloude_db",
-			"database_name": "cloude-db",
-			"database_id": "YOUR_DATABASE_ID_WILL_GO_HERE"
-		}
 	]
 	/**
 	 * Smart Placement
+
 	 * https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement
 	 */
 	// "placement": {  "mode": "smart" }

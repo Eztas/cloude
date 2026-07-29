@@ -49,7 +49,12 @@ graph TD
     Worker -->|レスポンス| FE
 ```
 
-### 3.3 データ構造（型定義）
+### 3.3 データ構造
+本プロジェクトでは、パフォーマンスを実現させるため、KVを利用(D1は現時点では使用しない)
+
+#### 1. Cloudflare KV (ゲームセッション管理: 一時データ)
+プレイ中の高速な状態管理に使用します。
+
 ```typescript
 interface GameState {
   sessionId: string;
@@ -175,10 +180,6 @@ app.post('/api/game/guess', async (c) => {
 	1. TypeScriptを選択
 	2. Oxlintを選択(ESLintよりも速い)
 2. `pnpm add hono`
-3. `pnpm add drizzle-orm && pnpm add -D drizzle-kit`
-4. `drizzle.config.ts`の追加と`wrangler.jsonc`のdb定義追加
-5. `src/db/schema.ts`でテーブル定義
-6. `npx wrangler d1 create cloude-db`
 
 ## React + TypeScript + Vite
 
