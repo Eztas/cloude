@@ -184,6 +184,7 @@ app.post('/api/game/guess', async (c) => {
 4. `npx wrangler kv namespace create cloude_kv`で本番用とローカル用の2つの使い分け
   1. `For local dev, do you want to connect to the remote resource instead of a local resource? - no`にしたら可能
   2. ローカルはデフォルトで存在する
+5. `pnpm run cf-typegen`で型定義
 
 ## React + TypeScript + Vite
 
