@@ -5,6 +5,7 @@ import cloudflareLogo from './assets/cloudflare.svg'
 import heroImg from './assets/hero.png'
 import './index.css'
 import { Button } from '@/components/ui/button'
+import './App.css'
 
 function App() {
   const [count, setCount] = useState(0)
