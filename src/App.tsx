@@ -3,7 +3,8 @@ import reactLogo from './assets/react.svg'
 import viteLogo from './assets/vite.svg'
 import cloudflareLogo from './assets/cloudflare.svg'
 import heroImg from './assets/hero.png'
-import './App.css'
+import './index.css'
+import { Button } from '@/components/ui/button'
 
 function App() {
   const [count, setCount] = useState(0)
@@ -25,12 +26,11 @@ function App() {
         </div>
         <ul style={{ display: 'flex', gap: '1rem', listStyle: 'none', padding: 0 }}>
           <li>
-            <button
-              className="counter"
+            <Button
               onClick={() => setCount((count) => count + 1)}
             >
               Count is {count}
-            </button>
+            </Button>
           </li>
           <li>
             <button
