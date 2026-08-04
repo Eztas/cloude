@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import reactLogo from './assets/react.svg'
 import viteLogo from './assets/vite.svg'
 import cloudflareLogo from './assets/cloudflare.svg'
@@ -9,7 +9,20 @@ import './App.css'
 
 function App() {
   const [count, setCount] = useState(0)
-  const [name, setName] = useState('unknown')
+
+  // 初期値を取得
+  useEffect(() => {
+    fetch('/api/counter')
+      .then((res) => res.json())
+      .then((data) => setCount(data.count))
+  }, [])
+
+  // インクリメント処理
+  const increment = async () => {
+    const res = await fetch('/api/counter', { method: 'POST' })
+    const data = await res.json()
+    setCount(data.count)
+  }
 
   return (
     <>
@@ -25,30 +38,11 @@ function App() {
             Edit <code>src/App.tsx</code> or <code>worker/index.ts</code> and save to test <code>HMR</code>
           </p>
         </div>
-        <ul style={{ display: 'flex', gap: '1rem', listStyle: 'none', padding: 0 }}>
-          <li>
-            <Button
-              onClick={() => setCount((count) => count + 1)}
-            >
-              Count is {count}
-            </Button>
-          </li>
-          <li>
-            <button
-              className="counter"
-              onClick={() => {
-                fetch('/api/hello')
-                  .then((res) => res.json())
-                  .then((data) => setName(data.message))
-              }}
-              aria-label='get name'
-            >
-              {name}
-            </button>
-          </li>
-        </ul>
-
-
+        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+          <Button onClick={increment}>
+            KV Count is {count}
+          </Button>
+        </div>
       </section>
 
       <div className="ticks"></div>
