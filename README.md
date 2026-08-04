@@ -185,6 +185,7 @@ app.post('/api/game/guess', async (c) => {
   1. `For local dev, do you want to connect to the remote resource instead of a local resource? - no`にしたら可能
   2. ローカルはデフォルトで存在する
 5. `pnpm run cf-typegen`で型定義
+6. `npx wrangler kv key get "counter" --binding=cloude_kv --local` で開発環境（ローカル環境）のcounterの値を見ることができる
 
 ## React + TypeScript + Vite
 
