@@ -186,6 +186,8 @@ app.post('/api/game/guess', async (c) => {
   2. ローカルはデフォルトで存在する
 5. `pnpm run cf-typegen`で型定義
 6. `npx wrangler kv key get "counter" --binding=cloude_kv --local` で開発環境（ローカル環境）のcounterの値を見ることができる
+7. `"ai": { "binding": "cloude_AI" }`
+8. `pnpm run cf-typegen`で型定義
 
 ## React + TypeScript + Vite
 
