@@ -10,6 +10,10 @@ import './App.css'
 function App() {
   const [count, setCount] = useState(0)
 
+  const [prompt, setPrompt] = useState('')
+  const [response, setResponse] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+
   // 初期値を取得
   useEffect(() => {
     fetch('/api/counter')
@@ -22,6 +26,34 @@ function App() {
     const res = await fetch('/api/counter', { method: 'POST' })
     const data = await res.json()
     setCount(data.count)
+  }
+
+  // Workers AI リクエスト処理
+  const askAI = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!prompt.trim() || isLoading) return
+
+    setIsLoading(true)
+    setResponse('')
+    try {
+      const res = await fetch('/api/ai/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt }),
+      })
+      const data = await res.json()
+      if (data.response) {
+        setResponse(data.response)
+      } else if (data.error) {
+        setResponse(`Error: ${data.error}`)
+      } else {
+        setResponse(JSON.stringify(data, null, 2))
+      }
+    } catch (err) {
+      setResponse(`Error: ${err instanceof Error ? err.message : 'Unknown error'}`)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -42,6 +74,31 @@ function App() {
           <Button onClick={increment}>
             KV Count is {count}
           </Button>
+        </div>
+
+        {/* Workers AI テストUI */}
+        <div className="mt-8 w-full max-w-md p-4 rounded-xl border border-white/10 bg-slate-900/50 backdrop-blur-sm text-left">
+          <h2 className="text-lg font-bold mb-2 flex items-center gap-2">
+            ✨ Workers AI Playground
+          </h2>
+          <form onSubmit={askAI} className="flex flex-col gap-3">
+            <input
+              type="text"
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder="質問を入力してください (例: Tell me a joke)"
+              className="px-3 py-2 rounded-md bg-slate-800 border border-slate-700 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500"
+            />
+            <Button type="submit" disabled={isLoading || !prompt.trim()}>
+              {isLoading ? 'AI生成中...' : 'AIに質問する'}
+            </Button>
+          </form>
+          {response && (
+            <div className="mt-4 p-3 rounded-md bg-slate-950 border border-slate-800 text-sm whitespace-pre-wrap">
+              <span className="text-xs text-slate-400 font-semibold block mb-1">レスポンス:</span>
+              {response}
+            </div>
+          )}
         </div>
       </section>
 
