@@ -47,18 +47,37 @@ app.post('/api/game/start', async (c) => {
 
 // ユーザーの回答を送信し、判定と次のヒントを取得
 app.post('/api/game/guess', async (c) => {
-  const { sessionId, word } = await c.req.json<{ sessionId: string, word: string }>()
+  const { sessionId, word } = await c.req.json<{ sessionId: string, word: string }>();
+
+  const gameStateString = await c.env.cloude_kv.get(sessionId);
+  if (!gameStateString) return c.json({ error: 'Session not found' }, 404);
+
+  const gameState: GameState = JSON.parse(gameStateString);
   
-  // TODO: KVからセッションを取得し、判定ロジックを実行して更新
-  const updatedGameState: GameState = {
-    sessionId,
-    board: Array(9).fill(null).map(() => ({ word: '仮の単語', type: 'correct', revealed: true })),
-    gameStatus: 'playing',
-    history: [{ hint: 'テストヒント', guess: word, result: 'correct' }]
-  };
+  // 判定ロジック
+  const targetBoardItem = gameState.board.find(item => item.word === word);
+  if (targetBoardItem && !targetBoardItem.revealed) {
+    targetBoardItem.revealed = true;
+    
+    // 履歴追加
+    gameState.history.push({
+      hint: '', // TODO: AIで生成
+      guess: word,
+      result: targetBoardItem.type
+    });
+
+    if (targetBoardItem.type === 'spy') {
+      gameState.gameStatus = 'game_over';
+    } else if (gameState.board.every(item => item.type === 'spy' || item.revealed)) {
+      gameState.gameStatus = 'won';
+    }
+  }
+
+  // ponytail: KV保存
+  await c.env.cloude_kv.put(sessionId, JSON.stringify(gameState));
   
-  return c.json(updatedGameState)
-})
+  return c.json(gameState);
+});
 
 // 存在しない API ルートへのレスポンスなど
 app.all('/api/*', (c) => {
