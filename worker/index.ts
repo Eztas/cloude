@@ -6,46 +6,53 @@ type Bindings = {
   cloude_AI: Ai
 }
 
-const WORKERS_AI_MODEL_NAME = '@cf/meta/llama-3.3-70b-instruct-fp8-fast'
+// 残しておく
+// const WORKERS_AI_MODEL_NAME = '@cf/meta/llama-3.3-70b-instruct-fp8-fast'
+
+// ゲーム状態の型定義
+export interface GameState {
+  sessionId: string;
+  board: {
+    word: string;
+    type: 'correct' | 'spy';
+    revealed: boolean;
+  }[]; // 9 elements
+  gameStatus: 'playing' | 'won' | 'game_over';
+  history: { hint: string; guess: string; result: 'correct' | 'spy' }[];
+}
 
 const app = new Hono<{ Bindings: Bindings }>()
 
-// カウンターの取得
-app.get('/api/counter', async (c) => {
-  const count = await c.env.cloude_kv.get('counter')
-  return c.json({ count: parseInt(count || '0') })
+// 新しいゲームセッションの開始
+app.post('/api/game/start', async (c) => {
+  // TODO: AIで単語を生成し、KVに保存して返す
+  const gameState: GameState = {
+    sessionId: crypto.randomUUID(),
+    board: Array(9).fill(null).map(() => ({ word: '仮の単語', type: 'correct', revealed: false })),
+    gameStatus: 'playing',
+    history: []
+  };
+  return c.json(gameState)
 })
 
-// カウンターのインクリメント
-app.post('/api/counter', async (c) => {
-  const current = await c.env.cloude_kv.get('counter')
-  const next = parseInt(current || '0') + 1
-  await c.env.cloude_kv.put('counter', next.toString())
-  return c.json({ count: next })
-})
-
-// Workers AI チャットエンドポイント
-app.post('/api/ai/chat', async (c) => {
-  try {
-    const { prompt } = await c.req.json<{ prompt: string }>()
-    if (!prompt) {
-      return c.json({ error: 'Prompt is required' }, 400)
-    }
-
-    const aiResponse = await c.env.cloude_AI.run(WORKERS_AI_MODEL_NAME, {
-      prompt,
-    })
-
-    return c.json(aiResponse)
-  } catch (error) {
-    console.error('AI execution error:', error)
-    return c.json({ error: 'Failed to execute AI model' }, 500)
-  }
+// ユーザーの回答を送信し、判定と次のヒントを取得
+app.post('/api/game/guess', async (c) => {
+  const { sessionId, word } = await c.req.json<{ sessionId: string, word: string }>()
+  
+  // TODO: KVからセッションを取得し、判定ロジックを実行して更新
+  const updatedGameState: GameState = {
+    sessionId,
+    board: Array(9).fill(null).map(() => ({ word: '仮の単語', type: 'correct', revealed: true })),
+    gameStatus: 'playing',
+    history: [{ hint: 'テストヒント', guess: word, result: 'correct' }]
+  };
+  
+  return c.json(updatedGameState)
 })
 
 // 存在しない API ルートへのレスポンスなど
 app.all('/api/*', (c) => {
-  return c.json({ error: 'Kummerspeck' }, 404)
+  return c.json({ error: 'Not Found' }, 404)
 })
 
 export default app
