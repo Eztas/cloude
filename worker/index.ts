@@ -6,17 +6,17 @@ type Bindings = {
   cloude_AI: Ai
 }
 
-// 残しておく
-// const WORKERS_AI_MODEL_NAME = '@cf/meta/llama-3.3-70b-instruct-fp8-fast'
+const WORKERS_AI_MODEL_NAME = '@cf/meta/llama-3.3-70b-instruct-fp8-fast'
 
 // ゲーム状態の型定義
+export type BoardItem = {
+  word: string;
+  type: 'correct' | 'spy';
+};
+
 export interface GameState {
   sessionId: string;
-  board: {
-    word: string;
-    type: 'correct' | 'spy';
-    revealed: boolean;
-  }[]; // 9 elements
+  board: (BoardItem & { revealed: boolean })[];
   gameStatus: 'playing' | 'won' | 'game_over';
   history: { hint: string; guess: string; result: 'correct' | 'spy' }[];
 }
@@ -25,13 +25,23 @@ const app = new Hono<{ Bindings: Bindings }>()
 
 // 新しいゲームセッションの開始
 app.post('/api/game/start', async (c) => {
-  // TODO: AIで単語を生成し、KVに保存して返す
+  const prompt = `9つの異なる名詞を生成し、そのうち2枚を「スパイ」、7枚を「正解」にランダムに設定してJSONで出力してください。
+[
+  {"word": "単語1", "type": "correct"},
+  {"word": "単語2", "type": "spy"},
+  ...
+]
+`;
+  const board = await c.env.cloude_AI.run(WORKERS_AI_MODEL_NAME, { prompt });
+
   const gameState: GameState = {
     sessionId: crypto.randomUUID(),
-    board: Array(9).fill(null).map(() => ({ word: '仮の単語', type: 'correct', revealed: false })),
+    board: (board as BoardItem[]).map(item => ({ ...item, revealed: false })),
     gameStatus: 'playing',
     history: []
   };
+
+  // ponytail: 簡易的なKV保存を想定して現状はメモリ上で返す。本番は c.env.cloude_kv.put(gameState.sessionId, JSON.stringify(gameState))
   return c.json(gameState)
 })
 
