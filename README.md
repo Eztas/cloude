@@ -182,9 +182,12 @@ app.post('/api/game/guess', async (c) => {
 2. `pnpm add hono`
 3. KVの設定（`wrangler.jsonc`でKVのバインド設定）
 4. `npx wrangler kv namespace create cloude_kv`で本番用とローカル用の2つの使い分け
-  1. `For local dev, do you want to connect to the remote resource instead of a local resource? - no`にしたら可能
-  2. ローカルはデフォルトで存在する
+    1. `For local dev, do you want to connect to the remote resource instead of a local resource? - no`にしたら可能
+    2. ローカルはデフォルトで存在する
 5. `pnpm run cf-typegen`で型定義
+6. `npx wrangler kv key get "counter" --binding=cloude_kv --local` で開発環境（ローカル環境）のcounterの値を見ることができる
+7. `"ai": { "binding": "cloude_AI" }`
+8. `pnpm run cf-typegen`で型定義
 
 ## React + TypeScript + Vite
 

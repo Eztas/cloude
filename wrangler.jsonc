@@ -22,7 +22,10 @@
 			"binding": "cloude_kv",
 			"id": "2766923ccb9d47c9b39d25847735912a"
 		}
-	]
+	],
+	"ai": {
+		"binding": "cloude_AI"
+	}
 	/**
 	 * Smart Placement
 
