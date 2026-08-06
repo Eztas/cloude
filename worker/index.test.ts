@@ -24,6 +24,18 @@ describe('Game Logic Tests', () => {
     assert.ok(gameState.sessionId);
   });
 
+  test('POST /api/game/start - 不正なAI出力の場合に500エラーを返す', async () => {
+    const invalidAiEnv = {
+      ...mockEnv,
+      cloude_AI: { run: async () => 'invalid-ai-response' }
+    };
+    const startRes = await app.request('/api/game/start', { method: 'POST' }, invalidAiEnv);
+    assert.strictEqual(startRes.status, 500);
+
+    const errorJson = await startRes.json() as { error: string };
+    assert.strictEqual(errorJson.error, 'Failed to generate valid game board');
+  });
+
   test('POST /api/game/guess - 単語の回答とボードの状態更新', async () => {
     const guessRes = await app.request('/api/game/guess', {
       method: 'POST',

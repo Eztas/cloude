@@ -31,6 +31,20 @@ const parseGameState = (str: string): GameState | null => {
   }
 };
 
+const isBoardItem = (item: unknown): item is BoardItem => {
+  return (
+    typeof item === 'object' &&
+    item !== null &&
+    typeof (item as Record<string, unknown>).word === 'string' &&
+    ((item as Record<string, unknown>).type === 'correct' ||
+      (item as Record<string, unknown>).type === 'spy')
+  );
+};
+
+const isBoardItemList = (items: unknown): items is BoardItem[] => {
+  return Array.isArray(items) && items.length > 0 && items.every(isBoardItem);
+};
+
 // 新しいゲームセッションの開始
 app.post('/api/game/start', async (c) => {
   const prompt = `9つの異なる名詞を生成し、そのうち2枚を「スパイ」、7枚を「正解」にランダムに設定してJSONで出力してください。
@@ -40,11 +54,15 @@ app.post('/api/game/start', async (c) => {
   ...
 ]
 `;
-  const board = await c.env.cloude_AI.run(WORKERS_AI_MODEL_NAME, { prompt });
+  const rawBoard = await c.env.cloude_AI.run(WORKERS_AI_MODEL_NAME, { prompt });
+
+  if (!isBoardItemList(rawBoard)) {
+    return c.json({ error: 'Failed to generate valid game board' }, 500);
+  }
 
   const gameState: GameState = {
     sessionId: crypto.randomUUID(),
-    board: (board as BoardItem[]).map(item => ({ ...item, revealed: false })),
+    board: rawBoard.map(item => ({ ...item, revealed: false })),
     gameStatus: 'playing',
     history: []
   };
