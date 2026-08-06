@@ -67,9 +67,9 @@ app.post('/api/game/start', async (c) => {
     history: []
   };
 
-  // ponytail: 簡易的なKV保存を想定して現状はメモリ上で返す。本番は c.env.cloude_kv.put(gameState.sessionId, JSON.stringify(gameState))
-  return c.json(gameState)
-})
+  await c.env.cloude_kv.put(gameState.sessionId, JSON.stringify(gameState));
+  return c.json(gameState);
+});
 
 // ユーザーの回答を送信し、判定と次のヒントを取得
 app.post('/api/game/guess', async (c) => {
