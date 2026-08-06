@@ -45,19 +45,51 @@ const isBoardItemList = (items: unknown): items is BoardItem[] => {
   return Array.isArray(items) && items.length > 0 && items.every(isBoardItem);
 };
 
+const AI_BOARD_SCHEMA = {
+  type: 'object',
+  properties: {
+    board: {
+      type: 'array',
+      minItems: 9,
+      maxItems: 9,
+      items: {
+        type: 'object',
+        properties: {
+          word: { type: 'string' },
+          type: { type: 'string', enum: ['correct', 'spy'] }
+        },
+        required: ['word', 'type']
+      }
+    }
+  },
+  required: ['board']
+};
+
 // 新しいゲームセッションの開始
 app.post('/api/game/start', async (c) => {
-  const prompt = `9つの異なる名詞を生成し、そのうち2枚を「スパイ」、7枚を「正解」にランダムに設定してJSONで出力してください。
-[
-  {"word": "単語1", "type": "correct"},
-  {"word": "単語2", "type": "spy"},
-  ...
-]
-`;
-  const rawBoard = await c.env.cloude_AI.run(WORKERS_AI_MODEL_NAME, { prompt });
+  const result = await c.env.cloude_AI.run(WORKERS_AI_MODEL_NAME, {
+    messages: [
+      {
+        role: 'system',
+        content: '日本語の名詞のみを生成するアシスタントです。指定されたJSON Schemaに厳密に従って出力してください。'
+      },
+      {
+        role: 'user',
+        content: '9つの異なる日本語の名詞を生成し、そのうち2つを type: "spy"、7つを type: "correct" としてランダムに割り当ててください。'
+      }
+    ],
+    response_format: {
+      type: 'json_schema',
+      json_schema: AI_BOARD_SCHEMA
+    }
+  });
+
+  // JSON Mode時は result.response が既にオブジェクト（パース済み）
+  const rawBoard = (result as { response?: { board?: unknown } }).response?.board;
   console.log('AI Response:', JSON.stringify(rawBoard, null, 2));
 
   if (!isBoardItemList(rawBoard)) {
+    console.log('Unexpected AI response:', JSON.stringify(result));
     return c.json({ error: 'Failed to generate valid game board' }, 500);
   }
 
@@ -71,6 +103,7 @@ app.post('/api/game/start', async (c) => {
   await c.env.cloude_kv.put(gameState.sessionId, JSON.stringify(gameState));
   return c.json(gameState);
 });
+
 
 // ユーザーの回答を送信し、判定と次のヒントを取得
 app.post('/api/game/guess', async (c) => {
