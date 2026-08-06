@@ -23,6 +23,14 @@ export interface GameState {
 
 const app = new Hono<{ Bindings: Bindings }>()
 
+const parseGameState = (str: string): GameState | null => {
+  try {
+    return JSON.parse(str);
+  } catch {
+    return null;
+  }
+};
+
 // 新しいゲームセッションの開始
 app.post('/api/game/start', async (c) => {
   const prompt = `9つの異なる名詞を生成し、そのうち2枚を「スパイ」、7枚を「正解」にランダムに設定してJSONで出力してください。
@@ -52,7 +60,8 @@ app.post('/api/game/guess', async (c) => {
   const gameStateString = await c.env.cloude_kv.get(sessionId);
   if (!gameStateString) return c.json({ error: 'Session not found' }, 404);
 
-  const gameState: GameState = JSON.parse(gameStateString);
+  const gameState = parseGameState(gameStateString);
+  if (!gameState) return c.json({ error: 'Failed to parse game state' }, 500);
   
   // 判定ロジック
   const targetBoardItem = gameState.board.find(item => item.word === word);

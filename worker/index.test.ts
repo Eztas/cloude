@@ -35,4 +35,23 @@ describe('Game Logic Tests', () => {
     const updatedState = (await guessRes.json()) as GameState;
     assert.strictEqual(updatedState.board[0].revealed, true);
   });
+
+  test('POST /api/game/guess - 壊れたKVデータの場合に500エラーを返す', async () => {
+    const invalidEnv = {
+      ...mockEnv,
+      cloude_kv: {
+        ...mockEnv.cloude_kv,
+        get: async () => 'invalid-json-{',
+      }
+    };
+    const guessRes = await app.request('/api/game/guess', {
+      method: 'POST',
+      body: JSON.stringify({ sessionId: '1', word: 'test' }),
+      headers: { 'Content-Type': 'application/json' }
+    }, invalidEnv);
+    assert.strictEqual(guessRes.status, 500);
+
+    const errorJson = await guessRes.json() as { error: string };
+    assert.strictEqual(errorJson.error, 'Failed to parse game state');
+  });
 });
