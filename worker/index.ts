@@ -55,6 +55,7 @@ app.post('/api/game/start', async (c) => {
 ]
 `;
   const rawBoard = await c.env.cloude_AI.run(WORKERS_AI_MODEL_NAME, { prompt });
+  console.log('AI Response:', JSON.stringify(rawBoard, null, 2));
 
   if (!isBoardItemList(rawBoard)) {
     return c.json({ error: 'Failed to generate valid game board' }, 500);
