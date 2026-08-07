@@ -13,7 +13,15 @@ describe('Game Logic Tests', () => {
       }),
       put: async () => { }
     },
-    cloude_AI: { run: async () => [{ word: 'test', type: 'correct' }] }
+    // ponytail: AIのモック構造を調整
+    cloude_AI: {
+      run: async (_model: string, options: any) => {
+        if (options.response_format) {
+          return { response: { board: [{ word: 'test', type: 'correct' }] } };
+        }
+        return { response: 'mocked hint' };
+      }
+    }
   };
 
   test('POST /api/game/start - ゲームの開始とセッションIDの生成', async () => {
