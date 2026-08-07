@@ -117,22 +117,34 @@ function App() {
       ) : (
         <main className="w-full max-w-2xl flex flex-col gap-6">
           {/* ステータスバー */}
-          <div className="flex items-center justify-between p-4 rounded-xl border border-slate-800 bg-slate-900/60 backdrop-blur-sm shadow-md">
-            <div>
-              <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider block">残り正解数</span>
-              <span className="text-2xl font-bold text-sky-400">{remainingCorrect} / 7</span>
-            </div>
+          <div className="flex flex-col gap-4 p-4 rounded-xl border border-slate-800 bg-slate-900/60 backdrop-blur-sm shadow-md">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider block">残り正解数</span>
+                <span className="text-2xl font-bold text-sky-400">{remainingCorrect} / 7</span>
+              </div>
 
-            <Button
-              onClick={handleStartGame}
-              disabled={isLoading}
-              variant="outline"
-              size="sm"
-              className="border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200"
-            >
-              {isLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-1" />}
-              リセット
-            </Button>
+              <Button
+                onClick={handleStartGame}
+                disabled={isLoading}
+                variant="outline"
+                size="sm"
+                className="border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200"
+              >
+                {isLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-1" />}
+                リセット
+              </Button>
+            </div>
+            
+            {/* ponytail: 最新のヒントを表示 */}
+            {gameState.history.length > 0 && (
+              <div className="p-3 rounded-lg bg-indigo-950/40 border border-indigo-900/50">
+                <span className="text-xs text-indigo-400 font-semibold uppercase tracking-wider block mb-1">現在のヒント</span>
+                <span className="text-lg font-bold text-indigo-100">
+                  {gameState.history[gameState.history.length - 1].hint}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* 勝敗オーバーレイ表示 */}

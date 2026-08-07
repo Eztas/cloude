@@ -65,6 +65,23 @@ const AI_BOARD_SCHEMA = {
   required: ['board']
 };
 
+// ponytail: ヒント生成関数
+const generateHint = async (env: Bindings, correctWords: string[]): Promise<string> => {
+  const result = await env.cloude_AI.run(WORKERS_AI_MODEL_NAME, {
+    messages: [
+      {
+        role: 'system',
+        content: 'あなたはヒントを出す役割です。以下の単語群から連想される、10文字以内の単語を1つだけ返してください。余計な文字は一切出力しないでください。'
+      },
+      {
+        role: 'user',
+        content: `残りの正解単語: ${correctWords.join(', ')}`
+      }
+    ]
+  });
+  return (result as { response: string }).response.trim();
+};
+
 // 新しいゲームセッションの開始
 app.post('/api/game/start', async (c) => {
   const result = await c.env.cloude_AI.run(WORKERS_AI_MODEL_NAME, {
@@ -100,6 +117,10 @@ app.post('/api/game/start', async (c) => {
     history: []
   };
 
+  // ponytail: 初期ヒント生成
+  const initialHint = await generateHint(c.env, gameState.board.filter(i => i.type === 'correct').map(i => i.word));
+  gameState.history.push({ hint: initialHint, guess: 'ゲーム開始', result: 'correct' });
+
   await c.env.cloude_kv.put(gameState.sessionId, JSON.stringify(gameState));
   return c.json(gameState);
 });
@@ -120,9 +141,16 @@ app.post('/api/game/guess', async (c) => {
   if (targetBoardItem && !targetBoardItem.revealed) {
     targetBoardItem.revealed = true;
     
+    // ponytail: 次のヒント生成
+    const remainingCorrect = gameState.board.filter(i => i.type === 'correct' && !i.revealed).map(i => i.word);
+    let nextHint = '';
+    if (remainingCorrect.length > 0) {
+      nextHint = await generateHint(c.env, remainingCorrect);
+    }
+    
     // 履歴追加
     gameState.history.push({
-      hint: '', // TODO: AIで生成
+      hint: nextHint,
       guess: word,
       result: targetBoardItem.type
     });
