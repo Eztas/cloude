@@ -1,4 +1,5 @@
-import app, { type GameState } from './index.ts';
+import app from './index.ts';
+import type { GameState } from './types.ts';
 import assert from 'node:assert';
 import { describe, test } from 'node:test';
 
