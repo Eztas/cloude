@@ -1,199 +1,116 @@
-import { useEffect, useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import cloudflareLogo from './assets/cloudflare.svg'
-import heroImg from './assets/hero.png'
-import './index.css'
 import { Button } from '@/components/ui/button'
+import { Sparkles, RefreshCw, AlertCircle } from 'lucide-react'
+import { useGame } from '@/hooks/useGame'
+import { Header } from '@/components/Header'
+import { GameBoard } from '@/components/GameBoard'
+import { GameHistory } from '@/components/GameHistory'
+import { GameStatusOverlay } from '@/components/GameStatusOverlay'
 import './App.css'
 
 function App() {
-  const [count, setCount] = useState(0)
-
-  const [prompt, setPrompt] = useState('')
-  const [response, setResponse] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
-
-  // 初期値を取得
-  useEffect(() => {
-    fetch('/api/counter')
-      .then((res) => res.json())
-      .then((data) => setCount(data.count))
-  }, [])
-
-  // インクリメント処理
-  const increment = async () => {
-    const res = await fetch('/api/counter', { method: 'POST' })
-    const data = await res.json()
-    setCount(data.count)
-  }
-
-  // Workers AI リクエスト処理
-  const askAI = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!prompt.trim() || isLoading) return
-
-    setIsLoading(true)
-    setResponse('')
-    try {
-      const res = await fetch('/api/ai/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt }),
-      })
-      const data = await res.json()
-      if (data.response) {
-        setResponse(data.response)
-      } else if (data.error) {
-        setResponse(`Error: ${data.error}`)
-      } else {
-        setResponse(JSON.stringify(data, null, 2))
-      }
-    } catch (err) {
-      setResponse(`Error: ${err instanceof Error ? err.message : 'Unknown error'}`)
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  const {
+    gameState,
+    isLoading,
+    error,
+    guessingWord,
+    handleStartGame,
+    handleGuess,
+    remainingCorrect,
+  } = useGame()
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center p-4 font-sans">
+      <Header />
+
+      {/* エラー表示 */}
+      {error && (
+        <div className="mb-6 p-4 rounded-xl bg-red-950/60 border border-red-800/80 text-red-200 text-sm flex items-center gap-2 max-w-md w-full animate-fadeIn">
+          <AlertCircle className="w-5 h-5 shrink-0 text-red-400" />
+          <span>{error}</span>
         </div>
-        <div>
-          <h1>Get started with Cloudflare</h1>
-          <p>
-            Edit <code>src/App.tsx</code> or <code>worker/index.ts</code> and save to test <code>HMR</code>
+      )}
+
+      {/* メインエリア */}
+      {!gameState ? (
+        <div className="flex flex-col items-center gap-4 p-8 rounded-2xl border border-slate-800 bg-slate-900/40 backdrop-blur-md max-w-md w-full text-center shadow-xl">
+          <div className="p-4 rounded-full bg-indigo-500/10 text-indigo-400 mb-2">
+            <Sparkles className="w-10 h-10 animate-pulse" />
+          </div>
+          <h2 className="text-xl font-bold">ゲームを開始</h2>
+          <p className="text-xs text-slate-400 mb-2">
+            Workers AI がランダムな名詞ボードをリアルタイム生成します。
           </p>
-        </div>
-        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-          <Button onClick={increment}>
-            KV Count is {count}
+          <Button
+            onClick={handleStartGame}
+            disabled={isLoading}
+            className="w-full py-6 text-base font-semibold bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white rounded-xl shadow-lg transition-all transform hover:scale-[1.02]"
+          >
+            {isLoading ? (
+              <span className="flex items-center gap-2">
+                <RefreshCw className="w-5 h-5 animate-spin" /> AIが盤面を生成中...
+              </span>
+            ) : (
+              '新規ゲームをスタート'
+            )}
           </Button>
         </div>
+      ) : (
+        <main className="w-full max-w-2xl flex flex-col gap-6">
+          {/* ステータスバー */}
+          <div className="flex flex-col gap-4 p-4 rounded-xl border border-slate-800 bg-slate-900/60 backdrop-blur-sm shadow-md">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider block">
+                  残り正解数
+                </span>
+                <span className="text-2xl font-bold text-sky-400">{remainingCorrect} / 7</span>
+              </div>
 
-        {/* Workers AI テストUI */}
-        <div className="mt-8 w-full max-w-md p-4 rounded-xl border border-white/10 bg-slate-900/50 backdrop-blur-sm text-left">
-          <h2 className="text-lg font-bold mb-2 flex items-center gap-2">
-            ✨ Workers AI Playground
-          </h2>
-          <form onSubmit={askAI} className="flex flex-col gap-3">
-            <input
-              type="text"
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder="質問を入力してください (例: Tell me a joke)"
-              className="px-3 py-2 rounded-md bg-slate-800 border border-slate-700 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500"
-            />
-            <Button type="submit" disabled={isLoading || !prompt.trim()}>
-              {isLoading ? 'AI生成中...' : 'AIに質問する'}
-            </Button>
-          </form>
-          {response && (
-            <div className="mt-4 p-3 rounded-md bg-slate-950 border border-slate-800 text-sm whitespace-pre-wrap">
-              <span className="text-xs text-slate-400 font-semibold block mb-1">レスポンス:</span>
-              {response}
+              <Button
+                onClick={handleStartGame}
+                disabled={isLoading}
+                variant="outline"
+                size="sm"
+                className="border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200"
+              >
+                {isLoading ? (
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-4 h-4 mr-1" />
+                )}
+                リセット
+              </Button>
             </div>
-          )}
-        </div>
-      </section>
 
-      <div className="ticks"></div>
+            {/* 最新のヒント表示 */}
+            {gameState.history.length > 0 && (
+              <div className="p-3 rounded-lg bg-indigo-950/40 border border-indigo-900/50">
+                <span className="text-xs text-indigo-400 font-semibold uppercase tracking-wider block mb-1">
+                  現在のヒント
+                </span>
+                <span className="text-lg font-bold text-indigo-100">
+                  {gameState.history[gameState.history.length - 1].hint}
+                </span>
+              </div>
+            )}
+          </div>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-            <li>
-              <a href="https://workers.cloudflare.com/" target="_blank">
-                <img className="button-icon" src={cloudflareLogo} alt="" />
-                Workers Docs
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+          {/* 勝敗オーバーレイ表示 */}
+          <GameStatusOverlay status={gameState.gameStatus} />
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+          {/* 3x3 カードグリッド */}
+          <GameBoard
+            board={gameState.board}
+            gameStatus={gameState.gameStatus}
+            guessingWord={guessingWord}
+            onGuess={handleGuess}
+          />
+
+          {/* 履歴エリア */}
+          <GameHistory history={gameState.history} />
+        </main>
+      )}
+    </div>
   )
 }
 
