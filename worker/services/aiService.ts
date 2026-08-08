@@ -1,5 +1,10 @@
 import type { Bindings, BoardItem } from '../types.ts'
-import { AI_BOARD_SCHEMA, isBoardItemList } from '../utils/validation.ts'
+import {
+  AI_BOARD_SCHEMA,
+  AI_HINT_SCHEMA,
+  isBoardItemList,
+  isAiHintOutput,
+} from '../utils/validation.ts'
 
 export const WORKERS_AI_MODEL_NAME = '@cf/meta/llama-3.3-70b-instruct-fp8-fast'
 
@@ -34,23 +39,43 @@ export const generateHint = async (
   correctWords: string[],
   spyWords: string[] = []
 ): Promise<string> => {
+  const maxCount = Math.min(3, correctWords.length)
   const result = await env.cloude_AI.run(WORKERS_AI_MODEL_NAME, {
     messages: [
       {
         role: 'system',
         content: `あなたはコードネーム風カードゲームのマスターAIです。
-                  【厳格なルール】
-                  1. 残りの「正解単語リスト」の中から、共通する2〜3個の単語を連想できる上位概念やカテゴリを1つ考えてください。
-                  2. 生成するヒントは、「スパイ単語リスト」に含まれる単語には絶対に連想・該当してはいけません（NG）。
-                  3. 盤面上の全単語（正解・スパイ）に含まれる文字列そのものをヒントに指定することは禁止（NG）です。
-                  4. 出力は余計な解説を一切含めず、「ヒント単語: N枚」（例: 「料理: 2枚」）の形式のみで出力してください。`,
+
+【タスク】
+「残りの正解単語」の中から 1〜${maxCount} 個の単語（targetWords）を選び、それらに共通する上位概念「hint」と枚数「count」を JSON Schema に従って決定してください。
+
+【厳格な禁止・注意事項】
+1. 【スパイ連想の絶対禁止】生成する hint は「スパイ単語 (連想絶対NG)」に含まれるどの単語にも連想・該当してはいけません。（例: スパイに「空」がある場合、「自然」「天気」「雲」などの上位・関連概念は絶対NG）
+2. 【盤面単語の再利用禁止】盤面にある全単語（正解・スパイ問わず）の文字列そのものを hint に使用してはいけません。
+3. 【枚数制限】count は選んだ targetWords の個数（1〜${maxCount}）と一致させてください。7枚など全体の枚数を出してはいけません。`,
       },
       {
         role: 'user',
-        content: `残りの正解単語: ${correctWords.join(', ')}\nスパイ単語 (連想NG): ${spyWords.join(', ')}`,
+        content: `残りの正解単語: ${correctWords.join(', ')}\nスパイ単語 (連想絶対NG): ${spyWords.join(', ')}`,
       },
     ],
+    response_format: {
+      type: 'json_schema',
+      json_schema: AI_HINT_SCHEMA,
+    },
   })
-  return (result as { response: string }).response.trim()
-}
 
+  const rawHint = (result as { response?: unknown }).response
+  if (isAiHintOutput(rawHint)) {
+    const hintWord = rawHint.hint.replace(/[\s:：枚]/g, '')
+    const count = Math.min(Math.max(1, rawHint.count), maxCount)
+    return `${hintWord}: ${count}枚`
+  }
+
+  // テキスト形式フォールバック
+  if (typeof rawHint === 'string') {
+    return rawHint.trim()
+  }
+
+  return 'ヒント: 1枚'
+}

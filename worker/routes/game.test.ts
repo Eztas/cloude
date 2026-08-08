@@ -16,7 +16,10 @@ describe('Game Routes Tests', () => {
     },
     cloude_AI: {
       run: async (_model: string, options: any) => {
-        if (options.response_format) {
+        if (options?.response_format?.json_schema?.properties?.hint) {
+          return { response: { hint: 'テストヒント', count: 2, targetWords: ['test'] } }
+        }
+        if (options?.response_format?.json_schema?.properties?.board) {
           return { response: { board: [{ word: 'test', type: 'correct' }] } }
         }
         return { response: 'mocked hint' }
