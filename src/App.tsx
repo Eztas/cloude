@@ -1,9 +1,8 @@
 import { Button } from '@/components/ui/button'
-import { Sparkles, RefreshCw, AlertCircle } from 'lucide-react'
+import { Sparkles, RefreshCw, AlertCircle, HelpCircle } from 'lucide-react'
 import { useGame } from '@/hooks/useGame'
 import { Header } from '@/components/Header'
 import { GameBoard } from '@/components/GameBoard'
-import { GameHistory } from '@/components/GameHistory'
 import { GameStatusOverlay } from '@/components/GameStatusOverlay'
 import './App.css'
 
@@ -11,12 +10,19 @@ function App() {
   const {
     gameState,
     isLoading,
+    isFetchingHint,
     error,
     guessingWord,
     handleStartGame,
     handleGuess,
     remainingCorrect,
   } = useGame()
+
+  const currentHintDisplay = gameState?.currentHint
+    ? `${gameState.currentHint.hint}: ${gameState.currentHint.count}枚`
+    : gameState?.history.length
+    ? gameState.history[gameState.history.length - 1].hint
+    : null
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center p-4 font-sans">
@@ -68,7 +74,7 @@ function App() {
 
               <Button
                 onClick={handleStartGame}
-                disabled={isLoading}
+                disabled={isLoading || isFetchingHint}
                 variant="outline"
                 size="sm"
                 className="border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200"
@@ -82,17 +88,34 @@ function App() {
               </Button>
             </div>
 
-            {/* 最新のヒント表示 */}
-            {gameState.history.length > 0 && (
-              <div className="p-3 rounded-lg bg-indigo-950/40 border border-indigo-900/50">
-                <span className="text-xs text-indigo-400 font-semibold uppercase tracking-wider block mb-1">
+            {/* 最新のヒント表示 ＆ 残り推測可能数 */}
+            <div className="p-4 rounded-xl bg-indigo-950/50 border border-indigo-900/60 flex items-center justify-between">
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-indigo-400 font-semibold uppercase tracking-wider flex items-center gap-1.5">
+                  <HelpCircle className="w-3.5 h-3.5" />
                   現在のヒント
                 </span>
-                <span className="text-lg font-bold text-indigo-100">
-                  {gameState.history[gameState.history.length - 1].hint}
-                </span>
+                {isFetchingHint ? (
+                  <span className="text-base text-indigo-300 font-medium flex items-center gap-2 animate-pulse">
+                    <RefreshCw className="w-4 h-4 animate-spin text-indigo-400" />
+                    AIが次のヒントを思考中...
+                  </span>
+                ) : (
+                  <span className="text-xl font-extrabold text-indigo-100 tracking-wide">
+                    {currentHintDisplay || 'ヒントなし'}
+                  </span>
+                )}
               </div>
-            )}
+
+              {gameState.gameStatus === 'playing' && !isFetchingHint && (
+                <div className="flex flex-col items-end">
+                  <span className="text-xs text-slate-400 font-medium">このターンの残り推測</span>
+                  <span className="text-xl font-black text-amber-400">
+                    {gameState.remainingGuesses} 回
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* 勝敗オーバーレイ表示 */}
@@ -102,12 +125,9 @@ function App() {
           <GameBoard
             board={gameState.board}
             gameStatus={gameState.gameStatus}
-            guessingWord={guessingWord}
+            guessingWord={guessingWord || (isFetchingHint ? 'AI思考中' : null)}
             onGuess={handleGuess}
           />
-
-          {/* 履歴エリア */}
-          <GameHistory history={gameState.history} />
         </main>
       )}
     </div>
