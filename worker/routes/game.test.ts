@@ -1,5 +1,5 @@
 import gameApp from './game.ts'
-import type { GameState } from '../types.ts'
+import type { GameState, HintInfo } from '../types.ts'
 import assert from 'node:assert'
 import { describe, test } from 'node:test'
 
@@ -8,21 +8,35 @@ describe('Game Routes Tests', () => {
     cloude_kv: {
       get: async (key: string) => JSON.stringify({
         sessionId: key,
-        board: [{ word: 'test', type: 'correct', revealed: false }],
+        board: [
+          { word: 'りんご', type: 'correct', revealed: false },
+          { word: 'みかん', type: 'correct', revealed: false },
+          { word: '爆弾', type: 'spy', revealed: false },
+        ],
         gameStatus: 'playing',
-        history: []
+        history: [],
+        currentHint: { hint: '果物', count: 2 },
+        remainingGuesses: 2
       }),
       put: async () => { }
     },
     cloude_AI: {
       run: async (_model: string, options: any) => {
         if (options?.response_format?.json_schema?.properties?.hint) {
-          return { response: { hint: 'テストヒント', count: 2, targetWords: ['test'] } }
+          return { response: { hint: '果物', count: 2, targetWords: ['りんご', 'みかん'] } }
         }
         if (options?.response_format?.json_schema?.properties?.board) {
-          return { response: { board: [{ word: 'test', type: 'correct' }] } }
+          return {
+            response: {
+              board: [
+                { word: 'りんご', type: 'correct' },
+                { word: 'みかん', type: 'correct' },
+                { word: '爆弾', type: 'spy' },
+              ]
+            }
+          }
         }
-        return { response: 'mocked hint' }
+        return { response: '果物: 2枚' }
       }
     }
   }
@@ -33,6 +47,9 @@ describe('Game Routes Tests', () => {
 
     const gameState = (await startRes.json()) as GameState
     assert.ok(gameState.sessionId)
+    assert.ok(gameState.currentHint)
+    assert.strictEqual(gameState.currentHint.hint, '果物')
+    assert.strictEqual(gameState.remainingGuesses, 2)
   })
 
   test('POST /start - 不正なAI出力の場合に500エラーを返す', async () => {
@@ -47,34 +64,17 @@ describe('Game Routes Tests', () => {
     assert.strictEqual(errorJson.error, 'Failed to generate valid game board')
   })
 
-  test('POST /guess - 単語の回答とボードの状態更新', async () => {
-    const guessRes = await gameApp.request('/guess', {
+  test('POST /hint - 次のヒント生成要求', async () => {
+    const hintRes = await gameApp.request('/hint', {
       method: 'POST',
-      body: JSON.stringify({ sessionId: '1', word: 'test' }),
+      body: JSON.stringify({ sessionId: '1', correctWords: ['りんご', 'みかん'], spyWords: ['爆弾'] }),
       headers: { 'Content-Type': 'application/json' }
     }, mockEnv)
-    assert.strictEqual(guessRes.status, 200)
+    assert.strictEqual(hintRes.status, 200)
 
-    const updatedState = (await guessRes.json()) as GameState
-    assert.strictEqual(updatedState.board[0].revealed, true)
-  })
-
-  test('POST /guess - 壊れたKVデータの場合に500エラーを返す', async () => {
-    const invalidEnv = {
-      ...mockEnv,
-      cloude_kv: {
-        ...mockEnv.cloude_kv,
-        get: async () => 'invalid-json-{',
-      }
-    }
-    const guessRes = await gameApp.request('/guess', {
-      method: 'POST',
-      body: JSON.stringify({ sessionId: '1', word: 'test' }),
-      headers: { 'Content-Type': 'application/json' }
-    }, invalidEnv)
-    assert.strictEqual(guessRes.status, 500)
-
-    const errorJson = (await guessRes.json()) as { error: string }
-    assert.strictEqual(errorJson.error, 'Failed to parse game state')
+    const json = (await hintRes.json()) as { currentHint: HintInfo; remainingGuesses: number }
+    assert.strictEqual(json.currentHint.hint, '果物')
+    assert.strictEqual(json.remainingGuesses, 2)
   })
 })
+
