@@ -21,9 +21,11 @@ game.post('/start', async (c) => {
   }
 
   // 初期ヒント生成
+  const spyWords = gameState.board.filter(i => i.type === 'spy').map(i => i.word)
   const initialHint = await generateHint(
     c.env,
-    gameState.board.filter(i => i.type === 'correct').map(i => i.word)
+    gameState.board.filter(i => i.type === 'correct').map(i => i.word),
+    spyWords
   )
   gameState.history.push({ hint: initialHint, guess: 'ゲーム開始', result: 'correct' })
 
@@ -50,9 +52,12 @@ game.post('/guess', async (c) => {
     const remainingCorrect = gameState.board
       .filter(i => i.type === 'correct' && !i.revealed)
       .map(i => i.word)
+    const currentSpyWords = gameState.board
+      .filter(i => i.type === 'spy')
+      .map(i => i.word)
     let nextHint = ''
     if (remainingCorrect.length > 0) {
-      nextHint = await generateHint(c.env, remainingCorrect)
+      nextHint = await generateHint(c.env, remainingCorrect, currentSpyWords)
     }
 
     // 履歴追加

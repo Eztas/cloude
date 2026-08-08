@@ -29,22 +29,28 @@ export const generateBoard = async (env: Bindings): Promise<BoardItem[] | null> 
   return rawBoard
 }
 
-export const generateHint = async (env: Bindings, correctWords: string[]): Promise<string> => {
+export const generateHint = async (
+  env: Bindings,
+  correctWords: string[],
+  spyWords: string[] = []
+): Promise<string> => {
   const result = await env.cloude_AI.run(WORKERS_AI_MODEL_NAME, {
     messages: [
       {
         role: 'system',
-        content: `あなたはワードゲームのヒント出しマスターです。
+        content: `あなたはコードネーム風カードゲームのマスターAIです。
                   【厳格なルール】
-                  1. 残りの正解単語リストの中から、共通する2〜3個の単語をまとめて連想・選択できるような上位概念や関連カテゴリの言葉を1つだけ考えて出力してください。
-                  2. 正解単語リストに含まれる単語そのもの、またはその文字列の一部を含んだ言葉をヒントにすることは絶対に禁止（NG）です。
-                  3. 挨拶や解説などの余計なテキストは一切出力せず、ヒントとなる単語（10文字以内）のみを出力してください。`,
+                  1. 残りの「正解単語リスト」の中から、共通する2〜3個の単語を連想できる上位概念やカテゴリを1つ考えてください。
+                  2. 生成するヒントは、「スパイ単語リスト」に含まれる単語には絶対に連想・該当してはいけません（NG）。
+                  3. 盤面上の全単語（正解・スパイ）に含まれる文字列そのものをヒントに指定することは禁止（NG）です。
+                  4. 出力は余計な解説を一切含めず、「ヒント単語: N枚」（例: 「料理: 2枚」）の形式のみで出力してください。`,
       },
       {
         role: 'user',
-        content: `残りの正解単語: ${correctWords.join(', ')}`,
+        content: `残りの正解単語: ${correctWords.join(', ')}\nスパイ単語 (連想NG): ${spyWords.join(', ')}`,
       },
     ],
   })
   return (result as { response: string }).response.trim()
 }
+
