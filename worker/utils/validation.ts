@@ -41,3 +41,38 @@ export const AI_BOARD_SCHEMA = {
   },
   required: ['board'],
 }
+
+export interface AiHintOutput {
+  hint: string
+  count: number
+  targetWords?: string[]
+}
+
+export const isAiHintOutput = (obj: unknown): obj is AiHintOutput => {
+  return (
+    typeof obj === 'object' &&
+    obj !== null &&
+    typeof (obj as Record<string, unknown>).hint === 'string' &&
+    typeof (obj as Record<string, unknown>).count === 'number'
+  )
+}
+
+export const AI_HINT_SCHEMA = {
+  type: 'object',
+  properties: {
+    hint: { type: 'string', description: '1つのヒント単語（例：料理）' },
+    count: {
+      type: 'integer',
+      description: '対象となる正解単語の枚数（1〜3の数値）',
+      minimum: 1,
+      maximum: 3,
+    },
+    targetWords: {
+      type: 'array',
+      items: { type: 'string' },
+      description: 'ヒントに関連付けた正解単語（1〜3個）',
+    },
+  },
+  required: ['hint', 'count', 'targetWords'],
+}
+
