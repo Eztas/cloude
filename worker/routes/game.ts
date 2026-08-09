@@ -1,8 +1,8 @@
 import { Hono } from 'hono'
 import type { Bindings, GameState } from '../types.ts'
-import { parseGameState } from '../utils/validation.ts'
+import { parseGameState } from '../lib/validation.ts'
 import { generateBoard, generateHint } from '../services/aiService.ts'
-import { parseHintString } from '../utils/hintParser.ts'
+import { parseHintString } from '../lib/hintParser.ts'
 
 const game = new Hono<{ Bindings: Bindings }>()
 

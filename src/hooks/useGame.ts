@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { GameState, HintInfo } from '@/types/game'
-import { applyGuess } from '@/utils/gameRules'
+import { applyGuess } from '@/lib/gameRules'
 
 export function useGame() {
   const [gameState, setGameState] = useState<GameState | null>(null)

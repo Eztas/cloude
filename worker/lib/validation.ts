@@ -75,4 +75,3 @@ export const AI_HINT_SCHEMA = {
   },
   required: ['hint', 'count', 'targetWords'],
 }
-

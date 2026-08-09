@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button'
-import { Sparkles, RefreshCw, AlertCircle, HelpCircle } from 'lucide-react'
+import { RefreshCw, AlertCircle, HelpCircle } from 'lucide-react'
 import { useGame } from '@/hooks/useGame'
 import { Header } from '@/components/Header'
 import { GameBoard } from '@/components/GameBoard'
@@ -21,8 +21,8 @@ function App() {
   const currentHintDisplay = gameState?.currentHint
     ? `${gameState.currentHint.hint}: ${gameState.currentHint.count}枚`
     : gameState?.history.length
-    ? gameState.history[gameState.history.length - 1].hint
-    : null
+      ? gameState.history[gameState.history.length - 1].hint
+      : null
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center p-4 font-sans">
@@ -39,13 +39,6 @@ function App() {
       {/* メインエリア */}
       {!gameState ? (
         <div className="flex flex-col items-center gap-4 p-8 rounded-2xl border border-slate-800 bg-slate-900/40 backdrop-blur-md max-w-md w-full text-center shadow-xl">
-          <div className="p-4 rounded-full bg-indigo-500/10 text-indigo-400 mb-2">
-            <Sparkles className="w-10 h-10 animate-pulse" />
-          </div>
-          <h2 className="text-xl font-bold">ゲームを開始</h2>
-          <p className="text-xs text-slate-400 mb-2">
-            Workers AI がランダムな名詞ボードをリアルタイム生成します。
-          </p>
           <Button
             onClick={handleStartGame}
             disabled={isLoading}
@@ -56,7 +49,7 @@ function App() {
                 <RefreshCw className="w-5 h-5 animate-spin" /> AIが盤面を生成中...
               </span>
             ) : (
-              '新規ゲームをスタート'
+              'スパイ2人を見つけ出せ'
             )}
           </Button>
         </div>
