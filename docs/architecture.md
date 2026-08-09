@@ -1,6 +1,38 @@
 # システムアーキテクチャ & シーケンス設計
 
-本ドキュメントでは、1人プレイ用コードネーム風ボードゲーム「Cloude」のシステムアーキテクチャやシーケンス図を作成
+本ドキュメントでは、1人プレイ用コードネーム風ボードゲーム「Cloude」の主要なディレクトリ構成、システムアーキテクチャおよび主要なインタラクションシーケンスを解説します。
+
+---
+
+## 主要なディレクトリ構成
+
+```
+.
+├── docs/                     # ドキュメント
+├── public/                   # 画像
+├── src/                      # フロントエンド（React + Vite）
+│   ├── components/           # UIコンポーネント
+│   │   ├── ui/               # shadcn/uiコンポーネント
+│   │   ├── GameBoard.tsx     # カードボード表示
+│   │   ├── GameStatusOverlay.tsx # 勝敗などのオーバーレイ
+│   │   └── Header.tsx        # ロゴ・タイトル表示
+│   ├── hooks/                # カスタムフック
+│   │   └── useGame.ts        # UI状態とAPI連携、ターン遷移の管理
+│   ├── lib/                  # フロントエンドのロジック
+│   │   ├── gameRules.ts      # 回答時の状態遷移・勝敗判定
+│   │   └── hintParser.ts     # ヒントテキストの抽出
+│   └── types/                # 共通の型定義
+│       └── game.ts
+└── worker/                   # バックエンド（Cloudflare Workers + Hono）
+    ├── lib/                  # バックエンドのロジック
+    │   ├── hintParser.ts     # AIが返したヒントテキストの解釈
+    │   └── validation.ts     # ボード状態やAI出力スキーマの検証
+    ├── routes/               # APIルーティング
+    │   └── game.ts           # ゲーム関連のAPI
+    ├── services/             # 外部サービス連携
+    │   └── aiService.ts      # Cloudflare Workers AI の呼び出し
+    └── index.ts              # Workerのエントリーポイント
+```
 
 ---
 
