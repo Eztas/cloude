@@ -4,7 +4,7 @@ import {
   AI_HINT_SCHEMA,
   isBoardItemList,
   isAiHintOutput,
-} from '../utils/validation.ts'
+} from '../lib/validation.ts'
 
 export const WORKERS_AI_MODEL_NAME = '@cf/meta/llama-3.3-70b-instruct-fp8-fast'
 
