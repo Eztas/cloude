@@ -1,6 +1,8 @@
 export type Bindings = {
   cloude_kv: KVNamespace
   cloude_AI: Ai
+  WORKERS_AI_MODEL_NAME: string
+  ZENN_FEED_URL: string
 }
 
 export type BoardItem = {

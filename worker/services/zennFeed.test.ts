@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { extractTitlesFromRss, fetchZennFeed } from './zennFeed.ts'
+import { extractTitlesFromRss, fetchZennTitles } from './zennFeed.ts'
 
 describe('zennFeed Unit Tests', () => {
   describe('extractTitlesFromRss', () => {
@@ -68,7 +68,14 @@ describe('zennFeed Unit Tests', () => {
   })
 
   describe('fetchZennFeed', () => {
-    it('モックfetchを使用して成功時にタイトルリストを返せること', async () => {
+    const dummyEnv = {
+      cloude_kv: {} as any,
+      cloude_AI: {} as any,
+      WORKERS_AI_MODEL_NAME: 'dummy',
+      ZENN_FEED_URL: 'https://zenn.dev/feed',
+    }
+
+    it('成功時にタイトルリストを返せること', async () => {
       const mockXml = `
         <rss>
           <channel>
@@ -77,33 +84,48 @@ describe('zennFeed Unit Tests', () => {
           </channel>
         </rss>
       `
-      const mockFetch = async () =>
+      const originalFetch = globalThis.fetch
+      globalThis.fetch = (async () =>
         new Response(mockXml, {
           status: 200,
           headers: { 'Content-Type': 'application/xml' },
-        })
+        })) as typeof fetch
 
-      const titles = await fetchZennFeed({ fetchFn: mockFetch as typeof fetch })
-      assert.deepEqual(titles, ['Zenn記事1', 'Zenn記事2'])
+      try {
+        const titles = await fetchZennTitles(dummyEnv)
+        assert.deepEqual(titles, ['Zenn記事1', 'Zenn記事2'])
+      } finally {
+        globalThis.fetch = originalFetch
+      }
     })
 
     it('HTTPエラー時にエラーハンドリングされ空配列を返すこと', async () => {
-      const mockFetch = async () =>
+      const originalFetch = globalThis.fetch
+      globalThis.fetch = (async () =>
         new Response('Internal Error', {
           status: 500,
-        })
+        })) as typeof fetch
 
-      const titles = await fetchZennFeed({ fetchFn: mockFetch as typeof fetch, silent: true })
-      assert.deepEqual(titles, [])
+      try {
+        const titles = await fetchZennTitles(dummyEnv)
+        assert.deepEqual(titles, [])
+      } finally {
+        globalThis.fetch = originalFetch
+      }
     })
 
     it('ネットワーク例外発生時に空配列を返すこと', async () => {
-      const mockFetch = async () => {
+      const originalFetch = globalThis.fetch
+      globalThis.fetch = (async () => {
         throw new Error('Network error')
-      }
+      }) as typeof fetch
 
-      const titles = await fetchZennFeed({ fetchFn: mockFetch as typeof fetch, silent: true })
-      assert.deepEqual(titles, [])
+      try {
+        const titles = await fetchZennTitles(dummyEnv)
+        assert.deepEqual(titles, [])
+      } finally {
+        globalThis.fetch = originalFetch
+      }
     })
   })
 })

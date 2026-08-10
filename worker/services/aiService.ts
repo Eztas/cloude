@@ -6,10 +6,8 @@ import {
   isAiHintOutput,
 } from '../lib/validation.ts'
 
-export const WORKERS_AI_MODEL_NAME = '@cf/meta/llama-3.3-70b-instruct-fp8-fast'
-
 export const generateBoard = async (env: Bindings): Promise<BoardItem[] | null> => {
-  const result = await env.cloude_AI.run(WORKERS_AI_MODEL_NAME, {
+  const result = await env.cloude_AI.run(env.WORKERS_AI_MODEL_NAME, {
     messages: [
       {
         role: 'system',
@@ -46,7 +44,7 @@ export const generateHint = async (
   spyWords: string[] = []
 ): Promise<string> => {
   const maxCount = Math.min(3, correctWords.length)
-  const result = await env.cloude_AI.run(WORKERS_AI_MODEL_NAME, {
+  const result = await env.cloude_AI.run(env.WORKERS_AI_MODEL_NAME, {
     messages: [
       {
         role: 'system',
