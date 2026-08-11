@@ -16,7 +16,7 @@ export const generateBoardWords = async (
   env: Bindings,
   zennTitles: string[] = []
 ): Promise<string[] | null> => {
-  const result = await env.cloude_AI.run(env.WORKERS_AI_MODEL_NAME, {
+  const result = await env.cloude_AI.run(env.WORKERS_AI_WORDS_MODEL_NAME, {
     messages: [
       {
         role: 'system',
@@ -47,7 +47,7 @@ export const generateHint = async (
   spyWords: string[] = []
 ): Promise<{ hintText: string; reasoning?: string }> => {
   const maxCount = Math.min(3, correctWords.length)
-  const result = await env.cloude_AI.run(env.WORKERS_AI_MODEL_NAME, {
+  const result = await env.cloude_AI.run(env.WORKERS_AI_HINTS_MODEL_NAME, {
     messages: [
       {
         role: 'system',

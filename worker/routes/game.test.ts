@@ -5,7 +5,8 @@ import { describe, test } from 'node:test'
 
 describe('Game Routes Tests', () => {
   const mockEnv = {
-    WORKERS_AI_MODEL_NAME: 'dummy',
+    WORKERS_AI_WORDS_MODEL_NAME: 'dummy-words-model',
+    WORKERS_AI_HINTS_MODEL_NAME: 'dummy-hints-model',
     ZENN_FEED_URL: 'https://zenn.dev/feed',
     cloude_kv: {
       get: async (key: string) => JSON.stringify({

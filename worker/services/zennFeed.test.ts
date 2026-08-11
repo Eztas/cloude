@@ -2,6 +2,8 @@ import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import { extractTitlesFromRss, fetchZennTitles } from './zennFeed.ts'
 
+import type { Bindings } from '../types.ts'
+
 describe('zennFeed Unit Tests', () => {
   describe('extractTitlesFromRss', () => {
     it('RSS XMLから記事タイトルを正常に抽出できること', () => {
@@ -71,9 +73,10 @@ describe('zennFeed Unit Tests', () => {
     const dummyEnv = {
       cloude_kv: {} as any,
       cloude_AI: {} as any,
-      WORKERS_AI_MODEL_NAME: 'dummy',
-      ZENN_FEED_URL: 'https://zenn.dev/feed',
-    }
+      WORKERS_AI_WORDS_MODEL_NAME: 'dummy-words-model',
+      WORKERS_AI_HINTS_MODEL_NAME: 'dummy-hints-model',
+      ZENN_FEED_URL: 'https:/dummy.feeds',
+    } satisfies Bindings
 
     it('成功時にタイトルリストを返せること', async () => {
       const mockXml = `
