@@ -44,6 +44,7 @@ export interface AiHintOutput {
   hint: string
   count: number
   targetWords?: string[]
+  reasoning?: string
 }
 
 export const isAiHintOutput = (obj: unknown): obj is AiHintOutput => {
@@ -58,7 +59,12 @@ export const isAiHintOutput = (obj: unknown): obj is AiHintOutput => {
 export const AI_HINT_SCHEMA = {
   type: 'object',
   properties: {
-    hint: { type: 'string', description: '1つのヒント単語（例：料理）' },
+    reasoning: {
+      type: 'string',
+      description:
+        '思考プロセス：選んだ正解単語、候補となるヒント、および各スパイ単語に誤って連想されないかの検証思考',
+    },
+    hint: { type: 'string', description: '検証を通過した1つの最終ヒント単語（例：料理）' },
     count: {
       type: 'integer',
       description: '対象となる正解単語の枚数（1〜3の数値）',
@@ -71,5 +77,5 @@ export const AI_HINT_SCHEMA = {
       description: 'ヒントに関連付けた正解単語（1〜3個）',
     },
   },
-  required: ['hint', 'count', 'targetWords'],
+  required: ['reasoning', 'hint', 'count', 'targetWords'],
 }

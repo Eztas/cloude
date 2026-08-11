@@ -13,6 +13,7 @@ export type BoardItem = {
 export type HintInfo = {
   hint: string
   count: number
+  reasoning?: string
 }
 
 export interface GameState {

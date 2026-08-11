@@ -25,8 +25,11 @@ game.post('/start', async (c) => {
   // 初期ヒント生成
   const spyWords = rawBoard.filter(i => i.type === 'spy').map(i => i.word)
   const correctWords = rawBoard.filter(i => i.type === 'correct').map(i => i.word)
-  const initialHintText = await generateHint(c.env, correctWords, spyWords)
-  const currentHint = parseHintString(initialHintText)
+  const { hintText, reasoning } = await generateHint(c.env, correctWords, spyWords)
+  const currentHint = {
+    ...parseHintString(hintText),
+    ...(reasoning ? { reasoning } : {}),
+  }
 
   const gameState: GameState = {
     sessionId: crypto.randomUUID(),
@@ -66,8 +69,11 @@ game.post('/hint', async (c) => {
     return c.json({ error: 'No remaining correct words for hint' }, 400)
   }
 
-  const nextHintText = await generateHint(c.env, correctWords, spyWords)
-  const currentHint = parseHintString(nextHintText)
+  const { hintText, reasoning } = await generateHint(c.env, correctWords, spyWords)
+  const currentHint = {
+    ...parseHintString(hintText),
+    ...(reasoning ? { reasoning } : {}),
+  }
 
   if (gameState) {
     gameState.currentHint = currentHint

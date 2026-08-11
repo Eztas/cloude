@@ -112,7 +112,10 @@ function App() {
           </div>
 
           {/* 勝敗オーバーレイ表示 */}
-          <GameStatusOverlay status={gameState.gameStatus} />
+          <GameStatusOverlay
+            status={gameState.gameStatus}
+            reasoning={gameState.currentHint?.reasoning}
+          />
 
           {/* 3x3 カードグリッド */}
           <GameBoard

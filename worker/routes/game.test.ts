@@ -25,7 +25,14 @@ describe('Game Routes Tests', () => {
     cloude_AI: {
       run: async (_model: string, options: any) => {
         if (options?.response_format?.json_schema?.properties?.hint) {
-          return { response: { hint: '果物', count: 2, targetWords: ['りんご', 'みかん'] } }
+          return {
+            response: {
+              reasoning: 'りんごとみかんは果物であり、爆弾には連想されません。',
+              hint: '果物',
+              count: 2,
+              targetWords: ['りんご', 'みかん'],
+            },
+          }
         }
         if (options?.response_format?.json_schema?.properties?.words) {
           return {

@@ -45,7 +45,7 @@ export const generateHint = async (
   env: Bindings,
   correctWords: string[],
   spyWords: string[] = []
-): Promise<string> => {
+): Promise<{ hintText: string; reasoning?: string }> => {
   const maxCount = Math.min(3, correctWords.length)
   const result = await env.cloude_AI.run(env.WORKERS_AI_MODEL_NAME, {
     messages: [
@@ -68,13 +68,16 @@ export const generateHint = async (
   if (isAiHintOutput(rawHint)) {
     const hintWord = rawHint.hint.replace(/[\s:：枚]/g, '')
     const count = Math.min(Math.max(1, rawHint.count), maxCount)
-    return `${hintWord}: ${count}枚`
+    return {
+      hintText: `${hintWord}: ${count}枚`,
+      reasoning: rawHint.reasoning,
+    }
   }
 
   // テキスト形式フォールバック
   if (typeof rawHint === 'string') {
-    return rawHint.trim()
+    return { hintText: rawHint.trim() }
   }
 
-  return 'ヒント: 1枚'
+  return { hintText: 'ヒント: 1枚' }
 }
