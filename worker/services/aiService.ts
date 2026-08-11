@@ -7,12 +7,15 @@ import {
 } from '../lib/validation.ts'
 import {
   BOARD_SYSTEM_PROMPT,
-  BOARD_USER_PROMPT,
+  getBoardUserPrompt,
   getHintSystemPrompt,
   getHintUserPrompt,
 } from '../prompts/gamePrompts.ts'
 
-export const generateBoard = async (env: Bindings): Promise<BoardItem[] | null> => {
+export const generateBoard = async (
+  env: Bindings,
+  zennTitles: string[] = []
+): Promise<BoardItem[] | null> => {
   const result = await env.cloude_AI.run(env.WORKERS_AI_MODEL_NAME, {
     messages: [
       {
@@ -21,7 +24,7 @@ export const generateBoard = async (env: Bindings): Promise<BoardItem[] | null> 
       },
       {
         role: 'user',
-        content: BOARD_USER_PROMPT,
+        content: getBoardUserPrompt(zennTitles),
       },
     ],
     response_format: {

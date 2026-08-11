@@ -2,13 +2,18 @@ import { Hono } from 'hono'
 import type { Bindings, GameState } from '../types.ts'
 import { parseGameState } from '../lib/validation.ts'
 import { generateBoard, generateHint } from '../services/aiService.ts'
+import { fetchZennTitles } from '../services/zennFeed.ts'
 import { parseHintString } from '../lib/hintParser.ts'
 
 const game = new Hono<{ Bindings: Bindings }>()
 
 // 新しいゲームセッションの開始
 game.post('/start', async (c) => {
-  const rawBoard = await generateBoard(c.env)
+  const zennTitles = await fetchZennTitles(c.env)
+  const shuffledTitles = [...zennTitles].sort(() => Math.random() - 0.5)
+  const selectedTitles = shuffledTitles.slice(0, 3)
+
+  const rawBoard = await generateBoard(c.env, selectedTitles)
 
   if (!rawBoard) {
     return c.json({ error: 'Failed to generate valid game board' }, 500)
