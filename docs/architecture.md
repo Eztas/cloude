@@ -30,7 +30,8 @@
     ├── routes/               # APIルーティング
     │   └── game.ts           # ゲーム関連のAPI
     ├── services/             # 外部サービス連携
-    │   └── aiService.ts      # Cloudflare Workers AI の呼び出し
+    │   ├── aiService.ts      # Cloudflare Workers AI の呼び出し
+    │   └── zennFeed.ts       # Zenn RSS フィードからのトレンドタイトル取得
     └── index.ts              # Workerのエントリーポイント
 ```
 
@@ -38,7 +39,7 @@
 
 ## 1. システムアーキテクチャ図
 
-クライアントサイド（Vite + React）とサーバーサイド（Cloudflare Workers + Hono）が、Cloudflare KV と Workers AI を介してどのように連携しているかを示します。
+クライアントサイド（Vite + React）とサーバーサイド（Cloudflare Workers + Hono）が、Cloudflare KV と Workers AI を介してどのように連携しているかを示す
 
 ```mermaid
 graph TD
@@ -55,18 +56,23 @@ graph TD
             index["index.ts (エントリーポイント)"]
             gameRouter["game.ts (ルーティング)"]
             aiService["aiService.ts (AI連携)"]
+            zennFeed["zennFeed.ts"]
             index --> gameRouter
             gameRouter --> aiService
+            gameRouter --> zennFeed
         end
         
         KV[("Cloudflare KV: cloude_kv")]
         WorkersAI["Cloudflare Workers AI"]
     end
 
+    ExternalFeed["Zenn フィード"]
+
     %% 通信経路
     useGame -->|HTTP POST /api/game/start| gameRouter
     useGame -->|HTTP POST /api/game/hint| gameRouter
     gameRouter -->|ゲーム状態の保存・取得| KV
+    zennFeed -->|RSS XMLの取得| ExternalFeed
     aiService -->|プロンプト推論| WorkersAI
 ```
 
@@ -75,7 +81,7 @@ graph TD
 ## 2. シーケンス図
 
 ### 2.1 新規ゲーム開始シーケンス
-ゲームの開始時にボード（単語・スパイ配置）と最初のヒントを Workers AI で生成し、状態を保存・返却するまでの流れです。主に、`api/game/start` 周りの内容を指す。
+ゲームの開始時に Zenn RSS フィードからトレンド記事タイトルを取得し、その単語キーワードを含むボード（単語・スパイ配置）および最初のヒントを Workers AI で生成して状態を保存・返却するまでの流れです。主に、`api/game/start` 周りの内容を指す。
 
 ```mermaid
 sequenceDiagram
@@ -83,6 +89,7 @@ sequenceDiagram
     actor User as プレイヤー
     participant Client as クライアント (React)
     participant Worker as バックエンド (Hono Worker)
+    participant Zenn as Zenn RSS (zennFeed.ts)
     participant KV as Cloudflare KV
     participant AI as Workers AI
 
@@ -90,8 +97,14 @@ sequenceDiagram
     Client ->> Worker: POST /api/game/start
     
     rect rgb(20, 30, 45)
+        Note over Worker, Zenn: トレンドタイトルの取得
+        Worker ->> Zenn: Zenn RSSフィードの取得・タイトル抽出
+        Zenn -->> Worker: 記事タイトル一覧 (ランダムに3件選出)
+    end
+
+    rect rgb(20, 30, 45)
         Note over Worker, AI: ボード単語生成
-        Worker ->> AI: ボード単語生成要求 (9つの単語、正解/スパイ/一般)
+        Worker ->> AI: ボード単語生成要求 (Zenn3タイトルキーワード + 6別ジャンル単語、正解/スパイ割り当て)
         AI -->> Worker: 生成されたボード単語データ
     end
 
