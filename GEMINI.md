@@ -8,6 +8,7 @@ This project is a web application utilizing a hybrid architecture of a React fro
 - **Tooling:** Wrangler for deployment and development.
 - **Styling:** Tailwind CSS, shadcn/ui.
 - **Storage:** Cloudflare KV (Session state management).
+- **AI Integration:** Cloudflare Workers AI
 
 ## Development Workflow
 - **Environment:** Node.js with pnpm.
