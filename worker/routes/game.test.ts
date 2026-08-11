@@ -27,13 +27,11 @@ describe('Game Routes Tests', () => {
         if (options?.response_format?.json_schema?.properties?.hint) {
           return { response: { hint: '果物', count: 2, targetWords: ['りんご', 'みかん'] } }
         }
-        if (options?.response_format?.json_schema?.properties?.board) {
+        if (options?.response_format?.json_schema?.properties?.words) {
           return {
             response: {
-              board: [
-                { word: 'りんご', type: 'correct' },
-                { word: 'みかん', type: 'correct' },
-                { word: '爆弾', type: 'spy' },
+              words: [
+                '単語1', '単語2', '単語3', '単語4', '単語5', '単語6', '単語7', '単語8', '単語9'
               ]
             }
           }

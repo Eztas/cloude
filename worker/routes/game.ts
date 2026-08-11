@@ -1,9 +1,10 @@
 import { Hono } from 'hono'
 import type { Bindings, GameState } from '../types.ts'
 import { parseGameState } from '../lib/validation.ts'
-import { generateBoard, generateHint } from '../services/aiService.ts'
+import { generateBoardWords, generateHint } from '../services/aiService.ts'
 import { fetchZennTitles } from '../services/zennFeed.ts'
 import { parseHintString } from '../lib/hintParser.ts'
+import { assignBoardTypes } from '../lib/boardAssigner.ts'
 
 const game = new Hono<{ Bindings: Bindings }>()
 
@@ -13,11 +14,13 @@ game.post('/start', async (c) => {
   const shuffledTitles = [...zennTitles].sort(() => Math.random() - 0.5)
   const selectedTitles = shuffledTitles.slice(0, 3)
 
-  const rawBoard = await generateBoard(c.env, selectedTitles)
+  const words = await generateBoardWords(c.env, selectedTitles)
 
-  if (!rawBoard) {
+  if (!words) {
     return c.json({ error: 'Failed to generate valid game board' }, 500)
   }
+
+  const rawBoard = assignBoardTypes(words)
 
   // 初期ヒント生成
   const spyWords = rawBoard.filter(i => i.type === 'spy').map(i => i.word)

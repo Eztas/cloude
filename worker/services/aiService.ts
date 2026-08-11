@@ -1,8 +1,8 @@
-import type { Bindings, BoardItem } from '../types.ts'
+import type { Bindings } from '../types.ts'
 import {
   AI_BOARD_SCHEMA,
   AI_HINT_SCHEMA,
-  isBoardItemList,
+  isWordList,
   isAiHintOutput,
 } from '../lib/validation.ts'
 import {
@@ -12,10 +12,10 @@ import {
   getHintUserPrompt,
 } from '../prompts/gamePrompts.ts'
 
-export const generateBoard = async (
+export const generateBoardWords = async (
   env: Bindings,
   zennTitles: string[] = []
-): Promise<BoardItem[] | null> => {
+): Promise<string[] | null> => {
   const result = await env.cloude_AI.run(env.WORKERS_AI_MODEL_NAME, {
     messages: [
       {
@@ -33,12 +33,12 @@ export const generateBoard = async (
     },
   })
 
-  const rawBoard = (result as { response?: { board?: unknown } }).response?.board
-  if (!isBoardItemList(rawBoard)) {
+  const rawWords = (result as { response?: { words?: unknown } }).response?.words
+  if (!isWordList(rawWords)) {
     return null
   }
 
-  return rawBoard
+  return rawWords
 }
 
 export const generateHint = async (

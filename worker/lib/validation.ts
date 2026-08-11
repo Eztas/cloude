@@ -18,6 +18,10 @@ export const isBoardItem = (item: unknown): item is BoardItem => {
   )
 }
 
+export const isWordList = (words: unknown): words is string[] => {
+  return Array.isArray(words) && words.length === 9 && words.every(w => typeof w === 'string')
+}
+
 export const isBoardItemList = (items: unknown): items is BoardItem[] => {
   return Array.isArray(items) && items.length > 0 && items.every(isBoardItem)
 }
@@ -25,21 +29,15 @@ export const isBoardItemList = (items: unknown): items is BoardItem[] => {
 export const AI_BOARD_SCHEMA = {
   type: 'object',
   properties: {
-    board: {
+    words: {
       type: 'array',
       minItems: 9,
       maxItems: 9,
-      items: {
-        type: 'object',
-        properties: {
-          word: { type: 'string' },
-          type: { type: 'string', enum: ['correct', 'spy'] },
-        },
-        required: ['word', 'type'],
-      },
+      items: { type: 'string' },
+      description: '生成された9つの名詞単語リスト',
     },
   },
-  required: ['board'],
+  required: ['words'],
 }
 
 export interface AiHintOutput {
