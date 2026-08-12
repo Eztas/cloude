@@ -1,8 +1,8 @@
-import type { Bindings, BoardItem } from '../types.ts'
+import type { Bindings } from '../types.ts'
 import {
   AI_BOARD_SCHEMA,
   AI_HINT_SCHEMA,
-  isBoardItemList,
+  isWordList,
   isAiHintOutput,
 } from '../lib/validation.ts'
 import {
@@ -12,11 +12,11 @@ import {
   getHintUserPrompt,
 } from '../prompts/gamePrompts.ts'
 
-export const generateBoard = async (
+export const generateBoardWords = async (
   env: Bindings,
   zennTitles: string[] = []
-): Promise<BoardItem[] | null> => {
-  const result = await env.cloude_AI.run(env.WORKERS_AI_MODEL_NAME, {
+): Promise<string[] | null> => {
+  const result = await env.cloude_AI.run(env.WORKERS_AI_WORDS_MODEL_NAME, {
     messages: [
       {
         role: 'system',
@@ -33,21 +33,21 @@ export const generateBoard = async (
     },
   })
 
-  const rawBoard = (result as { response?: { board?: unknown } }).response?.board
-  if (!isBoardItemList(rawBoard)) {
+  const rawWords = (result as { response?: { words?: unknown } }).response?.words
+  if (!isWordList(rawWords)) {
     return null
   }
 
-  return rawBoard
+  return rawWords
 }
 
 export const generateHint = async (
   env: Bindings,
   correctWords: string[],
   spyWords: string[] = []
-): Promise<string> => {
+): Promise<{ hintText: string; reasoning?: string }> => {
   const maxCount = Math.min(3, correctWords.length)
-  const result = await env.cloude_AI.run(env.WORKERS_AI_MODEL_NAME, {
+  const result = await env.cloude_AI.run(env.WORKERS_AI_HINTS_MODEL_NAME, {
     messages: [
       {
         role: 'system',
@@ -68,13 +68,16 @@ export const generateHint = async (
   if (isAiHintOutput(rawHint)) {
     const hintWord = rawHint.hint.replace(/[\s:：枚]/g, '')
     const count = Math.min(Math.max(1, rawHint.count), maxCount)
-    return `${hintWord}: ${count}枚`
+    return {
+      hintText: `${hintWord}: ${count}枚`,
+      reasoning: rawHint.reasoning,
+    }
   }
 
   // テキスト形式フォールバック
   if (typeof rawHint === 'string') {
-    return rawHint.trim()
+    return { hintText: rawHint.trim() }
   }
 
-  return 'ヒント: 1枚'
+  return { hintText: 'ヒント: 1枚' }
 }

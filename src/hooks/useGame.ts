@@ -8,13 +8,18 @@ export function useGame() {
   const [isFetchingHint, setIsFetchingHint] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [guessingWord, setGuessingWord] = useState<string | null>(null)
+  const [useZenn, setUseZenn] = useState<boolean>(true)
 
   // ゲーム開始ハンドラー
   const handleStartGame = async () => {
     setIsLoading(true)
     setError(null)
     try {
-      const res = await fetch('/api/game/start', { method: 'POST' })
+      const res = await fetch('/api/game/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ useZenn }),
+      })
       if (!res.ok) {
         const errData = await res.json().catch(() => ({ error: 'ゲームの開始に失敗しました' }))
         throw new Error(errData.error || 'ゲームの開始に失敗しました')
@@ -101,6 +106,8 @@ export function useGame() {
     isFetchingHint,
     error,
     guessingWord,
+    useZenn,
+    setUseZenn,
     handleStartGame,
     handleGuess,
     remainingCorrect,

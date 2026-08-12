@@ -4,6 +4,7 @@ import { useGame } from '@/hooks/useGame'
 import { Header } from '@/components/Header'
 import { GameBoard } from '@/components/GameBoard'
 import { GameStatusOverlay } from '@/components/GameStatusOverlay'
+import { ZennToggle } from '@/components/ZennToggle'
 import './App.css'
 
 function App() {
@@ -13,6 +14,8 @@ function App() {
     isFetchingHint,
     error,
     guessingWord,
+    useZenn,
+    setUseZenn,
     handleStartGame,
     handleGuess,
     remainingCorrect,
@@ -38,7 +41,10 @@ function App() {
 
       {/* メインエリア */}
       {!gameState ? (
-        <div className="flex flex-col items-center gap-4 p-8 rounded-2xl border border-slate-800 bg-slate-900/40 backdrop-blur-md max-w-md w-full text-center shadow-xl">
+        <div className="flex flex-col items-center gap-6 p-8 rounded-2xl border border-slate-800 bg-slate-900/40 backdrop-blur-md max-w-md w-full text-center shadow-xl">
+          {/* Zenn トレンド利用トグル */}
+          <ZennToggle checked={useZenn} onCheckedChange={setUseZenn} />
+
           <Button
             onClick={handleStartGame}
             disabled={isLoading}
@@ -112,7 +118,10 @@ function App() {
           </div>
 
           {/* 勝敗オーバーレイ表示 */}
-          <GameStatusOverlay status={gameState.gameStatus} />
+          <GameStatusOverlay
+            status={gameState.gameStatus}
+            reasoning={gameState.currentHint?.reasoning}
+          />
 
           {/* 3x3 カードグリッド */}
           <GameBoard

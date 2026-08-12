@@ -1,7 +1,8 @@
 export type Bindings = {
   cloude_kv: KVNamespace
   cloude_AI: Ai
-  WORKERS_AI_MODEL_NAME: string
+  WORKERS_AI_WORDS_MODEL_NAME: string
+  WORKERS_AI_HINTS_MODEL_NAME: string
   ZENN_FEED_URL: string
 }
 
@@ -13,6 +14,7 @@ export type BoardItem = {
 export type HintInfo = {
   hint: string
   count: number
+  reasoning?: string
 }
 
 export interface GameState {

@@ -1,29 +1,41 @@
 import { Hono } from 'hono'
 import type { Bindings, GameState } from '../types.ts'
 import { parseGameState } from '../lib/validation.ts'
-import { generateBoard, generateHint } from '../services/aiService.ts'
+import { generateBoardWords, generateHint } from '../services/aiService.ts'
 import { fetchZennTitles } from '../services/zennFeed.ts'
 import { parseHintString } from '../lib/hintParser.ts'
+import { assignBoardTypes } from '../lib/boardAssigner.ts'
 
 const game = new Hono<{ Bindings: Bindings }>()
 
 // 新しいゲームセッションの開始
 game.post('/start', async (c) => {
-  const zennTitles = await fetchZennTitles(c.env)
-  const shuffledTitles = [...zennTitles].sort(() => Math.random() - 0.5)
-  const selectedTitles = shuffledTitles.slice(0, 3)
+  const body = await c.req.json<{ useZenn?: boolean }>().catch(() => ({}) as { useZenn?: boolean })
+  const useZenn = body.useZenn ?? true
 
-  const rawBoard = await generateBoard(c.env, selectedTitles)
+  let selectedTitles: string[] = []
+  if (useZenn) {
+    const zennTitles = await fetchZennTitles(c.env)
+    const shuffledTitles = [...zennTitles].sort(() => Math.random() - 0.5)
+    selectedTitles = shuffledTitles.slice(0, 3)
+  }
 
-  if (!rawBoard) {
+  const words = await generateBoardWords(c.env, selectedTitles)
+
+  if (!words) {
     return c.json({ error: 'Failed to generate valid game board' }, 500)
   }
+
+  const rawBoard = assignBoardTypes(words)
 
   // 初期ヒント生成
   const spyWords = rawBoard.filter(i => i.type === 'spy').map(i => i.word)
   const correctWords = rawBoard.filter(i => i.type === 'correct').map(i => i.word)
-  const initialHintText = await generateHint(c.env, correctWords, spyWords)
-  const currentHint = parseHintString(initialHintText)
+  const { hintText, reasoning } = await generateHint(c.env, correctWords, spyWords)
+  const currentHint = {
+    ...parseHintString(hintText),
+    ...(reasoning ? { reasoning } : {}),
+  }
 
   const gameState: GameState = {
     sessionId: crypto.randomUUID(),
@@ -63,8 +75,11 @@ game.post('/hint', async (c) => {
     return c.json({ error: 'No remaining correct words for hint' }, 400)
   }
 
-  const nextHintText = await generateHint(c.env, correctWords, spyWords)
-  const currentHint = parseHintString(nextHintText)
+  const { hintText, reasoning } = await generateHint(c.env, correctWords, spyWords)
+  const currentHint = {
+    ...parseHintString(hintText),
+    ...(reasoning ? { reasoning } : {}),
+  }
 
   if (gameState) {
     gameState.currentHint = currentHint
