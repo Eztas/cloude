@@ -49,8 +49,16 @@ describe('Game Routes Tests', () => {
     }
   }
 
-  test('POST /start - ゲームの開始とセッションIDの生成', async () => {
-    const startRes = await gameApp.request('/start', { method: 'POST' }, mockEnv)
+  test('POST /start - ゲームの開始とセッションIDの生成 (デフォルト/useZenn: true)', async () => {
+    const startRes = await gameApp.request(
+      '/start',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ useZenn: true }),
+      },
+      mockEnv
+    )
     assert.strictEqual(startRes.status, 200)
 
     const gameState = (await startRes.json()) as GameState
@@ -58,6 +66,23 @@ describe('Game Routes Tests', () => {
     assert.ok(gameState.currentHint)
     assert.strictEqual(gameState.currentHint.hint, '果物')
     assert.strictEqual(gameState.remainingGuesses, 2)
+  })
+
+  test('POST /start - useZenn: false で Zenn トレンドを含めずにゲーム開始', async () => {
+    const startRes = await gameApp.request(
+      '/start',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ useZenn: false }),
+      },
+      mockEnv
+    )
+    assert.strictEqual(startRes.status, 200)
+
+    const gameState = (await startRes.json()) as GameState
+    assert.ok(gameState.sessionId)
+    assert.strictEqual(gameState.board.length, 9)
   })
 
   test('POST /start - 不正なAI出力の場合に500エラーを返す', async () => {

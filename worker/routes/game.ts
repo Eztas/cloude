@@ -10,9 +10,15 @@ const game = new Hono<{ Bindings: Bindings }>()
 
 // 新しいゲームセッションの開始
 game.post('/start', async (c) => {
-  const zennTitles = await fetchZennTitles(c.env)
-  const shuffledTitles = [...zennTitles].sort(() => Math.random() - 0.5)
-  const selectedTitles = shuffledTitles.slice(0, 3)
+  const body = await c.req.json<{ useZenn?: boolean }>().catch(() => ({}) as { useZenn?: boolean })
+  const useZenn = body.useZenn ?? true
+
+  let selectedTitles: string[] = []
+  if (useZenn) {
+    const zennTitles = await fetchZennTitles(c.env)
+    const shuffledTitles = [...zennTitles].sort(() => Math.random() - 0.5)
+    selectedTitles = shuffledTitles.slice(0, 3)
+  }
 
   const words = await generateBoardWords(c.env, selectedTitles)
 
