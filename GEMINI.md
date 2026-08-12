@@ -30,5 +30,6 @@ This project is a web application utilizing a hybrid architecture of a React fro
 ## Coding Guidelines
 - Prefer functional React components.
 - Reuse existing utilities before creating new ones.
+- UIコンポーネントを追加・拡張する場合は shadcn/ui を使用すること（`pnpm dlx shadcn@latest add <component>`）。
 - Do not introduce new dependencies unless necessary.
 - Follow existing naming conventions.
