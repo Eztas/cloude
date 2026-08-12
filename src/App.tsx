@@ -4,6 +4,7 @@ import { useGame } from '@/hooks/useGame'
 import { Header } from '@/components/Header'
 import { GameBoard } from '@/components/GameBoard'
 import { GameStatusOverlay } from '@/components/GameStatusOverlay'
+import { ZennToggle } from '@/components/ZennToggle'
 import './App.css'
 
 function App() {
@@ -42,24 +43,7 @@ function App() {
       {!gameState ? (
         <div className="flex flex-col items-center gap-6 p-8 rounded-2xl border border-slate-800 bg-slate-900/40 backdrop-blur-md max-w-md w-full text-center shadow-xl">
           {/* Zenn トレンド利用トグル */}
-          <div className="flex items-center justify-between w-full p-3.5 rounded-xl bg-slate-950/60 border border-slate-800">
-            <div className="flex flex-col text-left">
-              <span className="text-sm font-semibold text-slate-200">ITモード</span>
-            </div>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={useZenn}
-              onClick={() => setUseZenn(prev => !prev)}
-              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${useZenn ? 'bg-sky-500' : 'bg-slate-700'
-                }`}
-            >
-              <span
-                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${useZenn ? 'translate-x-5' : 'translate-x-0'
-                  }`}
-              />
-            </button>
-          </div>
+          <ZennToggle checked={useZenn} onCheckedChange={setUseZenn} />
 
           <Button
             onClick={handleStartGame}
