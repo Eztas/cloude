@@ -80,11 +80,5 @@ export const generateHint = async (
     }
   }
 
-  // テキスト形式フォールバック
-  if (typeof rawHint === 'string') {
-    return { hintText: rawHint.trim() }
-  }
-
-  return { hintText: 'ヒント: 1枚' }
+  return { hintText: 'ヒントなし' }
 }
-

@@ -48,4 +48,19 @@ describe('aiService Unit Tests', () => {
     assert.strictEqual(words?.length, 9)
     assert.strictEqual(words?.[0], '1')
   })
+
+  test('generateHint - 不正なレスポンスの場合に「ヒントなし」を返すこと', async () => {
+    const mockEnv = {
+      WORKERS_AI_HINTS_MODEL_NAME: '@cf/meta/llama-3-instruct',
+      cloude_AI: {
+        run: async () => ({
+          response: '不正なプレーンテキストレスポンス',
+        }),
+      },
+    } as unknown as Bindings
+
+    const result = await generateHint(mockEnv, ['JavaScript'], ['Python'])
+    assert.strictEqual(result.hintText, 'ヒントなし')
+  })
 })
+
