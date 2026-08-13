@@ -10,7 +10,8 @@
 		"lint": "oxlint",
 		"test": "tsx --test 'src/**/!(*.integration).test.ts' 'worker/**/!(*.integration).test.ts'",
 		"test:integration": "tsx --test 'src/**/*.integration.test.ts' 'worker/**/*.integration.test.ts'",
-		"preview": "pnpm run build && vite preview",
+		"preview": "pnpm run build && pnpm wrangler versions upload",
+		"preview-vite": "pnpm run build && vite preview",
 		"deploy": "pnpm run build && wrangler deploy",
 		"cf-typegen": "wrangler types"
 	},
