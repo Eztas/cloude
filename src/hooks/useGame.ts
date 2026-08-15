@@ -96,6 +96,14 @@ export function useGame() {
     }
   }
 
+  // 手動でAIヒントを再生成・リロードするハンドラー
+  const handleReloadHint = async () => {
+    if (!gameState || gameState.gameStatus !== 'playing' || isFetchingHint || isLoading) {
+      return
+    }
+    await fetchNextHint(gameState)
+  }
+
   const remainingCorrect = gameState
     ? gameState.board.filter(item => item.type === 'correct' && !item.revealed).length
     : 0
@@ -110,6 +118,8 @@ export function useGame() {
     setUseZenn,
     handleStartGame,
     handleGuess,
+    handleReloadHint,
     remainingCorrect,
   }
 }
+

@@ -26,6 +26,7 @@
 └── worker/                   # バックエンド（Cloudflare Workers + Hono）
     ├── lib/                  # バックエンドのロジック
     │   ├── hintParser.ts     # AIが返したヒントテキストの解釈
+    │   ├── jsonParser.ts     # AIレスポンス(JSON/マークダウン)の安全なパース
     │   └── validation.ts     # ボード状態やAI出力スキーマの検証
     ├── routes/               # APIルーティング
     │   └── game.ts           # ゲーム関連のAPI
@@ -145,8 +146,8 @@ sequenceDiagram
         Client -->> User: ゲームクリア (勝利)
     else 正解単語だが、推測回数が残っている場合
         Client -->> User: めくったカードの色を「正解」にし、推測回数を減らして継続
-    else 推測回数が 0 になった場合 (かつ未クリア・ゲーム継続中)
-        Note over Client: 次のヒント要求処理を開始
+    else 推測回数が 0 になった場合 (かつ未クリア) または 手動で「ヒント再生成」を押した場合
+        Note over Client: ヒント要求処理を開始
         Client ->> Worker: POST /api/game/hint
         Worker ->> KV: セッションIDから現在のGameStateを取得
         

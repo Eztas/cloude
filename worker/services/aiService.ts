@@ -5,6 +5,7 @@ import {
   isWordList,
   isAiHintOutput,
 } from '../lib/validation.ts'
+import { parseAiJsonResponse } from '../lib/jsonParser.ts'
 import {
   BOARD_SYSTEM_PROMPT,
   getBoardUserPrompt,
@@ -33,7 +34,10 @@ export const generateBoardWords = async (
     },
   })
 
-  const rawWords = (result as { response?: { words?: unknown } }).response?.words
+  const rawResponse = (result as { response?: unknown }).response
+  const parsedResponse = parseAiJsonResponse<{ words?: unknown }>(rawResponse)
+  const rawWords = parsedResponse?.words
+
   if (!isWordList(rawWords)) {
     return null
   }
@@ -65,19 +69,16 @@ export const generateHint = async (
   })
 
   const rawHint = (result as { response?: unknown }).response
-  if (isAiHintOutput(rawHint)) {
-    const hintWord = rawHint.hint.replace(/[\s:：枚]/g, '')
-    const count = Math.min(Math.max(1, rawHint.count), maxCount)
+  const parsedHint = parseAiJsonResponse(rawHint)
+
+  if (isAiHintOutput(parsedHint)) {
+    const hintWord = parsedHint.hint.replace(/[\s:：枚]/g, '')
+    const count = Math.min(Math.max(1, parsedHint.count), maxCount)
     return {
       hintText: `${hintWord}: ${count}枚`,
-      reasoning: rawHint.reasoning,
+      reasoning: parsedHint.reasoning,
     }
   }
 
-  // テキスト形式フォールバック
-  if (typeof rawHint === 'string') {
-    return { hintText: rawHint.trim() }
-  }
-
-  return { hintText: 'ヒント: 1枚' }
+  return { hintText: 'ヒントなし' }
 }
