@@ -111,12 +111,20 @@ sequenceDiagram
     end
 
     rect rgb(20, 30, 45)
-        Note over Worker, AI: 初期ヒント生成
-        Worker ->> AI: 初期ヒント生成要求 (正解単語リスト vs スパイ単語リスト)
-        AI -->> Worker: ヒント・枚数テキスト
+        Note over Worker, AI: 盤面単語の事前Embedding取得
+        Worker ->> AI: 9単語のベクトル化要求 (@cf/baai/bge-base-en-v1.5)
+        AI -->> Worker: 9単語のベクトル多次元配列
+        Note over Worker: 各BoardItemにvector属性を付与
     end
 
-    Note over Worker: ゲーム状態 (GameState) オブジェクトの構築
+    rect rgb(20, 30, 45)
+        Note over Worker, AI: 初期ヒント生成 & 検閲
+        Worker ->> AI: 初期ヒント生成要求 (正解単語リスト vs スパイ単語リスト)
+        AI -->> Worker: 試作ヒント
+        Note over Worker: 試作ヒントをEmbedding化し事前保持ベクトルと比較検閲 (NGならリトライ)
+    end
+
+    Note over Worker: 各カードのvectorを含む GameState の構築
     Worker ->> KV: セッションIDをキーに GameState を保存
     Worker -->> Client: 初期 GameState (JSON)
     Client -->> User: 初期ボードとヒントを表示
@@ -166,39 +174,8 @@ sequenceDiagram
 
 ---
 
-## 3. Embedding (ベクトル埋め込み) によるAIヒント検閲・ガードレール
+## 3. Embedding (ベクトル埋め込み) による「事前グループ選定」アーキテクチャ
 
-### 3.1 Embedding とは？
-Embedding（ベクトル埋め込み）とは、**単語や文章の意味・概念を「多次元の数値リスト（ベクトル）」に変換する技術**です。
-
-- **従来の文字列比較**: 「公園」と「サファリパーク」は文字が違うため関係がないと判定されたり、逆に「公園」と「フラメンコ」の概念的な近さを文字から判定することは困難。
-- **Embedding（ベクトル化）**: 単語を「意味の位置」に配置するため、数学的な距離（コサイン類似度: 0.0〜1.0）を計算できます。
-  - 例: `コサイン類似度("公園", "サファリパーク") ≒ 0.65` （近い）
-  - 例: `コサイン類似度("公園", "フラメンコ") ≒ 0.48` （連想され得る距離）
-  - 例: `コサイン類似度("公園", "GPU") ≒ 0.12` （無関係）
-
----
-
-### 3.2 ガードレール & 自動リトライ（Self-Correction Loop）の流れ
-
-AI（LLM）のプロンプトだけに頼ると、「BM25はアルコール度数の単位ではないがアルコール関係」のような虚構の捏造や、「公園」と「フラメンコ」のようなスパイへの誤爆連想が発生します。
-
-そのため、バックエンド (`aiService.ts` + `similarity.ts`) のプログラム側で以下の二重検閲を行い、NGの場合は自動的にAIへリトライ（再生成）を行います。
-
-```mermaid
-flowchart TD
-    Start([1. AIがヒントを試作生成]) --> Step1[2. 文字列重複チェック]
-    Step1 -- 盤面単語の文字を含む (NG) --> Retry[バックエンド内で再試行]
-    Step1 -- OK --> Step2[3. Workers AI Embedding APIを呼び出し]
-    
-    Step2 --> Calc[ヒントと全単語のコサイン類似度を計算]
-    Calc --> Cond1{スパイ単語との最大類似度 > 0.55 ?}
-    Cond1 -- YES: スパイ誤爆リスク大 (NG) --> Retry
-    
-    Cond1 -- NO --> Cond2{スパイとの類似度 > 正解単語との類似度 ?}
-    Cond2 -- YES: スパイの方が近い (NG) --> Retry
-    
-    Cond2 -- NO (OK) --> Pass([4. 安全なヒントとして確定・返却])
-    
-    Retry -- 最大3回リトライ上限 --> Fallback([安全なデフォルトヒントを返却])
-```
+### 3.1 従来の課題と本手法の狙い
+- **従来の課題**: AI（LLM）に自由に正解単語を選ばせると、「GPU」と「サファリパーク」を秋イベントで無理やりまとめる等のハルシネーション（こじつけ）が発生する。
+- **本手法の狙い**: AIに思考を丸投げせず、**プログラム側で事前のベクトル計算により「安全で自然な正解単語グループ」をあらかじめ決定し、AIにはその共通点となる言葉の生成のみを担当させる**。
