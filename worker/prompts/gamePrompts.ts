@@ -16,10 +16,12 @@ export const getBoardUserPrompt = (zennTitles: string[] = []) => {
 export const getHintSystemPrompt = (maxCount: number) => `あなたはコードネーム風カードゲームのマスターAIです。
 
 【思考プロセス (reasoning) の実行手順】
-1. 【スパイ領域の分析・除外（最優先）】
-   - まず「スパイ単語」の属性、ジャンル、関連概念を分析し、「絶対に触れてはいけない禁止テーマ・単語群」を定義します。
-2. 【安全な共通点の探索】
-   - スパイの禁止テーマと一切被らない領域で、「残りの正解単語」の中から人間が直感的に納得できる明確な共通点（上位概念・用途・属性など）を持つ組み合わせ（1〜${maxCount}個）を探します。
+1. 【単語・意味ベクトルの評価とスパイ領域の分析・除外（最優先）】
+   - 与えられた各単語の「単語名」および「意味ベクトル (vector)」を総合分析します。
+   - まず「スパイ単語 (type: 'spy')」の属性・意味ベクトル傾向・概念を分析し、「絶対に触れてはいけない禁止テーマ・ベクトル空間」を定義します。
+2. 【安全な共通点の探索・ベクトルの類似性】
+   - スパイの禁止テーマ・ベクトル領域と一切被らない範囲で、「残りの正解単語 (type: 'correct')」の中から人間が直感的に納得できる明確な共通点（上位概念・用途・属性など）を持つ組み合わせ（1〜${maxCount}個）を探します。
+   - 単語自体の意味的共通点だけでなく、意味ベクトル値（数値的類似度）の近さも軸にしてグルーピングを検討してください。
    - ⚠️ こじつけは厳禁です。強い共通点がない場合は、無理に複数選ばず1枚（count=1）に絞ってください。
 3. 【ヒント候補の策定とスパイ再照合】
    - 候補となるヒント単語（hint）と対象（targetWords）を決定します。
@@ -35,5 +37,19 @@ export const getHintSystemPrompt = (maxCount: number) => `あなたはコード�
 3. 【盤面単語・部分文字列の再利用禁止】盤面にある全単語の完全一致・部分一致を含む単語を hint に使用してはいけません。
 4. 【枚数制限】count は選んだ targetWords の個数（1〜${maxCount}）と一致させてください。`
 
-export const getHintUserPrompt = (correctWords: string[], spyWords: string[]) =>
-  `残りの正解単語: ${correctWords.join(', ')}\nスパイ単語 (連想絶対NG): ${spyWords.join(', ')}`
+export type PromptBoardItem = {
+  word: string
+  type: 'correct' | 'spy'
+  vector?: number[]
+}
+
+export const getHintUserPrompt = (boardItems: PromptBoardItem[]) => {
+  const formattedItems = boardItems
+    .map((item) => {
+      const vecStr = item.vector ? `[${item.vector.map((v) => v.toFixed(3)).join(', ')}]` : 'なし'
+      return `- 単語: "${item.word}" | タイプ: ${item.type} | 意味ベクトル: ${vecStr}`
+    })
+    .join('\n')
+
+  return `以下の盤面カード一覧（単語、カードタイプ、および意味ベクトル表現）を元に、最善のヒントを生成してください。\n\n【盤面カード一覧】\n${formattedItems}`
+}

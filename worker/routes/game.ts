@@ -5,7 +5,6 @@ import { generateBoardWords, generateHint, generateEmbeddings } from '../service
 import { fetchZennTitles } from '../services/zennFeed.ts'
 import { parseHintString } from '../lib/hintParser.ts'
 import { assignBoardTypes } from '../lib/boardAssigner.ts'
-import { calculateDistanceMatrix } from '../lib/similarity.ts'
 
 const game = new Hono<{ Bindings: Bindings }>()
 
@@ -36,14 +35,8 @@ game.post('/start', async (c) => {
     ...(embeddings && embeddings[idx] ? { vector: embeddings[idx] } : {}),
   }))
 
-  // 全ペアの距離行列を計算 (9単語 × 9単語)
-  const distanceMatrix = calculateDistanceMatrix(rawBoard)
-  console.log('=== distanceMatrix ===\n', JSON.stringify(distanceMatrix, null, 2))
-
   // 初期ヒント生成
-  const spyWords = rawBoard.filter(i => i.type === 'spy').map(i => i.word)
-  const correctWords = rawBoard.filter(i => i.type === 'correct').map(i => i.word)
-  const { hintText, reasoning } = await generateHint(c.env, correctWords, spyWords)
+  const { hintText, reasoning } = await generateHint(c.env, rawBoard)
   const currentHint = {
     ...parseHintString(hintText),
     ...(reasoning ? { reasoning } : {}),
@@ -56,7 +49,6 @@ game.post('/start', async (c) => {
     history: [],
     currentHint,
     remainingGuesses: currentHint.count,
-    distanceMatrix,
   }
 
   await c.env.cloude_kv.put(gameState.sessionId, JSON.stringify(gameState))
@@ -67,8 +59,7 @@ game.post('/start', async (c) => {
 game.post('/hint', async (c) => {
   const body = await c.req.json<{
     sessionId: string
-    correctWords?: string[]
-    spyWords?: string[]
+    boardItems?: GameState['board']
   }>()
 
   const gameStateString = await c.env.cloude_kv.get(body.sessionId)
@@ -77,18 +68,16 @@ game.post('/hint', async (c) => {
     gameState = parseGameState(gameStateString)
   }
 
-  const correctWords =
-    body.correctWords ??
-    (gameState ? gameState.board.filter(i => i.type === 'correct' && !i.revealed).map(i => i.word) : [])
-  const spyWords =
-    body.spyWords ??
-    (gameState ? gameState.board.filter(i => i.type === 'spy').map(i => i.word) : [])
+  const activeBoardItems =
+    body.boardItems ??
+    (gameState ? gameState.board.filter(i => !i.revealed) : [])
 
-  if (correctWords.length === 0) {
+  const correctCount = activeBoardItems.filter(i => i.type === 'correct').length
+  if (correctCount === 0) {
     return c.json({ error: 'No remaining correct words for hint' }, 400)
   }
 
-  const { hintText, reasoning } = await generateHint(c.env, correctWords, spyWords)
+  const { hintText, reasoning } = await generateHint(c.env, activeBoardItems)
   const currentHint = {
     ...parseHintString(hintText),
     ...(reasoning ? { reasoning } : {}),

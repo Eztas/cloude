@@ -73,8 +73,6 @@ describe('Game Routes Tests', () => {
     assert.strictEqual(gameState.remainingGuesses, 2)
     assert.strictEqual(gameState.board.length, 9)
     assert.deepStrictEqual(gameState.board[0].vector, [0.1, 0.2, 0.3])
-    assert.ok(gameState.distanceMatrix)
-    assert.strictEqual(typeof gameState.distanceMatrix['単語1:単語2'], 'number')
   })
 
   test('POST /start - useZenn: false で Zenn トレンドを含めずにゲーム開始', async () => {
@@ -109,7 +107,14 @@ describe('Game Routes Tests', () => {
   test('POST /hint - 次のヒント生成要求', async () => {
     const hintRes = await gameApp.request('/hint', {
       method: 'POST',
-      body: JSON.stringify({ sessionId: '1', correctWords: ['りんご', 'みかん'], spyWords: ['爆弾'] }),
+      body: JSON.stringify({
+        sessionId: '1',
+        boardItems: [
+          { word: 'りんご', type: 'correct' },
+          { word: 'みかん', type: 'correct' },
+          { word: '爆弾', type: 'spy' },
+        ],
+      }),
       headers: { 'Content-Type': 'application/json' }
     }, mockEnv)
     assert.strictEqual(hintRes.status, 200)

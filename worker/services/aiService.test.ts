@@ -14,7 +14,11 @@ describe('aiService Unit Tests', () => {
       },
     } as unknown as Bindings
 
-    const result = await generateHint(mockEnv, ['JavaScript', 'TypeScript'], ['Python'])
+    const result = await generateHint(mockEnv, [
+      { word: 'JavaScript', type: 'correct' },
+      { word: 'TypeScript', type: 'correct' },
+      { word: 'Python', type: 'spy' },
+    ])
     assert.strictEqual(result.hintText, 'プログラミング: 2枚')
     assert.strictEqual(result.reasoning, '思考プロセス')
   })
@@ -29,7 +33,10 @@ describe('aiService Unit Tests', () => {
       },
     } as unknown as Bindings
 
-    const result = await generateHint(mockEnv, ['Ruby'], ['Rust'])
+    const result = await generateHint(mockEnv, [
+      { word: 'Ruby', type: 'correct' },
+      { word: 'Rust', type: 'spy' },
+    ])
     assert.strictEqual(result.hintText, '言語: 1枚')
     assert.strictEqual(result.reasoning, 'コードブロック思考')
   })
@@ -59,7 +66,7 @@ describe('aiService Unit Tests', () => {
       },
     } as unknown as Bindings
 
-    const result = await generateHint(mockEnv, ['JavaScript'], ['Python'])
+    const result = await generateHint(mockEnv, [{ word: 'JavaScript', type: 'correct' }])
     assert.strictEqual(result.hintText, 'ヒントなし')
   })
 

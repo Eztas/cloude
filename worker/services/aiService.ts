@@ -1,4 +1,4 @@
-import type { Bindings } from '../types.ts'
+import type { Bindings, BoardItem } from '../types.ts'
 import {
   AI_BOARD_SCHEMA,
   AI_HINT_SCHEMA,
@@ -47,10 +47,10 @@ export const generateBoardWords = async (
 
 export const generateHint = async (
   env: Bindings,
-  correctWords: string[],
-  spyWords: string[] = []
+  boardItems: BoardItem[]
 ): Promise<{ hintText: string; reasoning?: string }> => {
-  const maxCount = Math.min(3, correctWords.length)
+  const correctCount = boardItems.filter((i) => i.type === 'correct').length
+  const maxCount = Math.min(3, correctCount)
   const result = await env.cloude_AI.run(env.WORKERS_AI_HINTS_MODEL_NAME, {
     messages: [
       {
@@ -59,7 +59,7 @@ export const generateHint = async (
       },
       {
         role: 'user',
-        content: getHintUserPrompt(correctWords, spyWords),
+        content: getHintUserPrompt(boardItems),
       },
     ],
     response_format: {

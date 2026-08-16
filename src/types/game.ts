@@ -18,5 +18,4 @@ export interface GameState {
   history: { hint: string; guess: string; result: 'correct' | 'spy' }[]
   currentHint?: HintInfo | null
   remainingGuesses: number
-  distanceMatrix?: Record<string, number>
 }
