@@ -174,8 +174,49 @@ sequenceDiagram
 
 ---
 
-## 3. Embedding (ベクトル埋め込み) による「事前グループ選定」アーキテクチャ
+## 3. Embedding (ベクトル埋め込み) によるゲーム開始時のヒント検証・ガードレール構造
 
-### 3.1 従来の課題と本手法の狙い
-- **従来の課題**: AI（LLM）に自由に正解単語を選ばせると、「GPU」と「サファリパーク」を秋イベントで無理やりまとめる等のハルシネーション（こじつけ）が発生する。
-- **本手法の狙い**: AIに思考を丸投げせず、**プログラム側で事前のベクトル計算により「安全で自然な正解単語グループ」をあらかじめ決定し、AIにはその共通点となる言葉の生成のみを担当させる**。
+### 3.1 原理と狙い
+- **Embedding（ベクトル埋め込み）**: Cloudflare Workers AI (`@cf/baai/bge-base-en-v1.5`) を用い、単語の意味や概念を多次元の数値配列（ベクトル）に変換します。
+- **コサイン類似度（Cosine Similarity）**: 2つのベクトル間の角度の余弦（-1.0〜1.0）を計算し、文字が異なっていても概念的な近さを数値化します。
+- **スパイ誤爆の検閲（ガードレール）**: AIが作成した初期ヒント単語をベクトル化し、盤面にあるスパイ単語および正解単語のベクトルと比較・検閲します。以下の条件のいずれかに該当する場合は「不安全（スパイ誤爆リスク大）」と判定し、AIにヒントの再生成（リトライ）を行わせます。
+  1. スパイ単語との最高類似度が閾値（`0.55`）を超えている場合
+  2. スパイ単語との最高類似度が正解単語との最高類似度を上回っている場合
+
+### 3.2 ゲーム開始時の詳細シーケンスとファイル遷移
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Client as クライアント (React)
+    participant GameRoute as game.ts (ルーティング)
+    participant AIService as aiService.ts (Workers AI)
+    participant Similarity as similarity.ts (類似度計算)
+    participant KV as Cloudflare KV
+
+    Client ->> GameRoute: POST /api/game/start
+    GameRoute ->> AIService: 盤面9単語の埋め込み取得 (generateEmbeddings)
+    AIService -->> GameRoute: 9単語の vector 配列
+    
+    loop 最大3回リトライ
+        GameRoute ->> AIService: 初期ヒント生成 (generateHint)
+        AIService -->> GameRoute: 試作ヒント単語 (例: "果物")
+        GameRoute ->> AIService: ヒント単語の埋め込み取得 ("果物" の vector)
+        AIService -->> GameRoute: ヒントの vector
+        GameRoute ->> Similarity: ヒントと盤面単語の検証 (validateHintSafety)
+        Similarity -->> GameRoute: OK (安全) or NG (スパイ誤爆リスク)
+    end
+
+    GameRoute ->> KV: 各カードに vector を持たせた GameState を保存
+    GameRoute -->> Client: 初期 GameState を返却
+```
+
+### 3.3 主な関連ファイルと役割
+- **[worker/services/aiService.ts](file:///Users/brainscience/Documents/VSCode/cloude/worker/services/aiService.ts)**
+  - `generateEmbeddings`: Workers AI の Embedding モデルを呼び出し、テキスト単語を数値ベクトル `number[][]` に変換します。
+- **[worker/lib/similarity.ts](file:///Users/brainscience/Documents/VSCode/cloude/worker/lib/similarity.ts)**
+  - `cosineSimilarity`: 2つのベクトル間のコサイン類似度を算出します。
+  - `validateHintSafety`: スパイ単語・正解単語のベクトルとヒントベクトルを比較し、誤爆判定ルールに基づき安全性を `boolean` で判定します。
+- **[worker/routes/game.ts](file:///Users/brainscience/Documents/VSCode/cloude/worker/routes/game.ts)**
+  - `POST /start` ルートにて全9単語のベクトル付与、初期ヒントのベクトル検証および最大3回のリトライ制御を実行し、`vector` を含む `GameState` を Cloudflare KV へ保存します。
+
