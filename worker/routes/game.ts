@@ -5,7 +5,7 @@ import { generateBoardWords, generateHint, generateEmbeddings } from '../service
 import { fetchZennTitles } from '../services/zennFeed.ts'
 import { parseHintString } from '../lib/hintParser.ts'
 import { assignBoardTypes } from '../lib/boardAssigner.ts'
-import { validateHintSafety } from '../lib/similarity.ts'
+import { calculateDistanceMatrix } from '../lib/similarity.ts'
 
 const game = new Hono<{ Bindings: Bindings }>()
 
@@ -36,32 +36,17 @@ game.post('/start', async (c) => {
     ...(embeddings && embeddings[idx] ? { vector: embeddings[idx] } : {}),
   }))
 
+  // 全ペアの距離行列を計算 (9単語 × 9単語)
+  const distanceMatrix = calculateDistanceMatrix(rawBoard)
+  console.log('=== distanceMatrix ===\n', JSON.stringify(distanceMatrix, null, 2))
+
+  // 初期ヒント生成
   const spyWords = rawBoard.filter(i => i.type === 'spy').map(i => i.word)
   const correctWords = rawBoard.filter(i => i.type === 'correct').map(i => i.word)
-
-  // 初期ヒント生成 & 検閲リトライ (最大3回)
-  let currentHint = { hint: 'ヒントなし', count: 1 }
-  const MAX_RETRIES = 3
-
-  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-    const { hintText, reasoning } = await generateHint(c.env, correctWords, spyWords)
-    const parsed = {
-      ...parseHintString(hintText),
-      ...(reasoning ? { reasoning } : {}),
-    }
-
-    if (embeddings && parsed.hint && parsed.hint !== 'ヒントなし') {
-      const hintEmbeddings = await generateEmbeddings(c.env, [parsed.hint])
-      if (hintEmbeddings && hintEmbeddings[0]) {
-        const isSafe = validateHintSafety(hintEmbeddings[0], rawBoard)
-        if (!isSafe && attempt < MAX_RETRIES - 1) {
-          continue
-        }
-      }
-    }
-
-    currentHint = parsed
-    break
+  const { hintText, reasoning } = await generateHint(c.env, correctWords, spyWords)
+  const currentHint = {
+    ...parseHintString(hintText),
+    ...(reasoning ? { reasoning } : {}),
   }
 
   const gameState: GameState = {
@@ -71,6 +56,7 @@ game.post('/start', async (c) => {
     history: [],
     currentHint,
     remainingGuesses: currentHint.count,
+    distanceMatrix,
   }
 
   await c.env.cloude_kv.put(gameState.sessionId, JSON.stringify(gameState))

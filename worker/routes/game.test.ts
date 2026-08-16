@@ -73,6 +73,8 @@ describe('Game Routes Tests', () => {
     assert.strictEqual(gameState.remainingGuesses, 2)
     assert.strictEqual(gameState.board.length, 9)
     assert.deepStrictEqual(gameState.board[0].vector, [0.1, 0.2, 0.3])
+    assert.ok(gameState.distanceMatrix)
+    assert.strictEqual(typeof gameState.distanceMatrix['単語1:単語2'], 'number')
   })
 
   test('POST /start - useZenn: false で Zenn トレンドを含めずにゲーム開始', async () => {

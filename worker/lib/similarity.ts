@@ -80,3 +80,26 @@ export const validateHintSafety = (
 
   return true
 }
+
+/**
+ * 盤面単語の全ペア（36ペア）におけるコサイン類似度行列（マッピング）を計算する
+ */
+export const calculateDistanceMatrix = (
+  boardItems: { word: string; vector?: number[] }[]
+): Record<string, number> => {
+  const matrix: Record<string, number> = {}
+
+  for (let i = 0; i < boardItems.length; i++) {
+    const itemA = boardItems[i]
+    for (let j = i + 1; j < boardItems.length; j++) {
+      const itemB = boardItems[j]
+      if (itemA.vector && itemB.vector) {
+        const sim = cosineSimilarity(itemA.vector, itemB.vector)
+        matrix[`${itemA.word}:${itemB.word}`] = sim
+        matrix[`${itemB.word}:${itemA.word}`] = sim
+      }
+    }
+  }
+
+  return matrix
+}

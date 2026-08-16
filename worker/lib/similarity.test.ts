@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
-import { cosineSimilarity, validateHintSafety } from './similarity.ts'
+import { cosineSimilarity, validateHintSafety, calculateDistanceMatrix } from './similarity.ts'
 import type { BoardItem } from '../types.ts'
 
 describe('similarity Unit Tests', () => {
@@ -57,6 +57,21 @@ describe('similarity Unit Tests', () => {
       const hintVector = [0.4, 0.5, 0] // スパイ類似度 > 正解類似度（かつ閾値以下の場合でも）
       const isValid = validateHintSafety(hintVector, boardItems, { maxSpySimilarityThreshold: 0.8 })
       assert.strictEqual(isValid, false)
+    })
+  })
+
+  describe('calculateDistanceMatrix', () => {
+    it('全ペアの類似度マップを正しく計算・作成できること', () => {
+      const items = [
+        { word: 'A', vector: [1, 0] },
+        { word: 'B', vector: [0, 1] },
+        { word: 'C', vector: [1, 0] },
+      ]
+      const matrix = calculateDistanceMatrix(items)
+      assert.strictEqual(matrix['A:B'], 0)
+      assert.strictEqual(matrix['B:A'], 0)
+      assert.strictEqual(Math.round(matrix['A:C'] * 100) / 100, 1)
+      assert.strictEqual(Math.round(matrix['C:A'] * 100) / 100, 1)
     })
   })
 })
