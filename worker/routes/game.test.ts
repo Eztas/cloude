@@ -25,6 +25,11 @@ describe('Game Routes Tests', () => {
     },
     cloude_AI: {
       run: async (_model: string, options: any) => {
+        if (options?.text) {
+          return {
+            data: options.text.map(() => [0.1, 0.2, 0.3]),
+          }
+        }
         if (options?.response_format?.json_schema?.properties?.hint) {
           return {
             response: {
@@ -66,6 +71,8 @@ describe('Game Routes Tests', () => {
     assert.ok(gameState.currentHint)
     assert.strictEqual(gameState.currentHint.hint, '果物')
     assert.strictEqual(gameState.remainingGuesses, 2)
+    assert.strictEqual(gameState.board.length, 9)
+    assert.deepStrictEqual(gameState.board[0].vector, [0.1, 0.2, 0.3])
   })
 
   test('POST /start - useZenn: false で Zenn トレンドを含めずにゲーム開始', async () => {

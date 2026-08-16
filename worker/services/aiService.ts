@@ -82,3 +82,25 @@ export const generateHint = async (
 
   return { hintText: 'ヒントなし' }
 }
+
+export const generateEmbeddings = async (
+  env: Bindings,
+  texts: string[]
+): Promise<number[][] | null> => {
+  if (texts.length === 0) return []
+  const model = env.WORKERS_AI_EMBEDDING_MODEL_NAME || '@cf/baai/bge-base-en-v1.5'
+  try {
+    const result = await env.cloude_AI.run(model as Parameters<typeof env.cloude_AI.run>[0], {
+      text: texts,
+    })
+    const data = (result as { data?: number[][] }).data
+    if (Array.isArray(data) && data.length === texts.length) {
+      return data
+    }
+    return null
+  } catch (error) {
+    console.error('Failed to generate embeddings:', error)
+    return null
+  }
+}
+

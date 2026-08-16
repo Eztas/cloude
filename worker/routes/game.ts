@@ -1,10 +1,11 @@
 import { Hono } from 'hono'
 import type { Bindings, GameState } from '../types.ts'
 import { parseGameState } from '../lib/validation.ts'
-import { generateBoardWords, generateHint } from '../services/aiService.ts'
+import { generateBoardWords, generateHint, generateEmbeddings } from '../services/aiService.ts'
 import { fetchZennTitles } from '../services/zennFeed.ts'
 import { parseHintString } from '../lib/hintParser.ts'
 import { assignBoardTypes } from '../lib/boardAssigner.ts'
+import { validateHintSafety } from '../lib/similarity.ts'
 
 const game = new Hono<{ Bindings: Bindings }>()
 
@@ -26,15 +27,41 @@ game.post('/start', async (c) => {
     return c.json({ error: 'Failed to generate valid game board' }, 500)
   }
 
-  const rawBoard = assignBoardTypes(words)
+  const baseBoard = assignBoardTypes(words)
 
-  // 初期ヒント生成
+  // 盤面単語の事前Embedding取得
+  const embeddings = await generateEmbeddings(c.env, words)
+  const rawBoard = baseBoard.map((item, idx) => ({
+    ...item,
+    ...(embeddings && embeddings[idx] ? { vector: embeddings[idx] } : {}),
+  }))
+
   const spyWords = rawBoard.filter(i => i.type === 'spy').map(i => i.word)
   const correctWords = rawBoard.filter(i => i.type === 'correct').map(i => i.word)
-  const { hintText, reasoning } = await generateHint(c.env, correctWords, spyWords)
-  const currentHint = {
-    ...parseHintString(hintText),
-    ...(reasoning ? { reasoning } : {}),
+
+  // 初期ヒント生成 & 検閲リトライ (最大3回)
+  let currentHint = { hint: 'ヒントなし', count: 1 }
+  const MAX_RETRIES = 3
+
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    const { hintText, reasoning } = await generateHint(c.env, correctWords, spyWords)
+    const parsed = {
+      ...parseHintString(hintText),
+      ...(reasoning ? { reasoning } : {}),
+    }
+
+    if (embeddings && parsed.hint && parsed.hint !== 'ヒントなし') {
+      const hintEmbeddings = await generateEmbeddings(c.env, [parsed.hint])
+      if (hintEmbeddings && hintEmbeddings[0]) {
+        const isSafe = validateHintSafety(hintEmbeddings[0], rawBoard)
+        if (!isSafe && attempt < MAX_RETRIES - 1) {
+          continue
+        }
+      }
+    }
+
+    currentHint = parsed
+    break
   }
 
   const gameState: GameState = {

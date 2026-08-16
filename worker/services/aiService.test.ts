@@ -1,6 +1,6 @@
 import assert from 'node:assert'
 import { describe, test } from 'node:test'
-import { generateHint, generateBoardWords } from './aiService.ts'
+import { generateHint, generateBoardWords, generateEmbeddings } from './aiService.ts'
 import type { Bindings } from '../types.ts'
 
 describe('aiService Unit Tests', () => {
@@ -61,6 +61,21 @@ describe('aiService Unit Tests', () => {
 
     const result = await generateHint(mockEnv, ['JavaScript'], ['Python'])
     assert.strictEqual(result.hintText, 'ヒントなし')
+  })
+
+  test('generateEmbeddings - 単語リストのベクトル配列を取得できること', async () => {
+    const mockEnv = {
+      cloude_AI: {
+        run: async () => ({
+          data: [[0.1, 0.2], [0.3, 0.4]],
+        }),
+      },
+    } as unknown as Bindings
+
+    const embeddings = await generateEmbeddings(mockEnv, ['公園', 'GPU'])
+    assert.strictEqual(embeddings?.length, 2)
+    assert.deepStrictEqual(embeddings?.[0], [0.1, 0.2])
+    assert.deepStrictEqual(embeddings?.[1], [0.3, 0.4])
   })
 })
 
