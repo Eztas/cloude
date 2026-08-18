@@ -55,6 +55,54 @@ game.post('/start', async (c) => {
   return c.json(gameState)
 })
 
+// プレイヤーの回答判定・カード開封エンドポイント
+game.post('/guess', async (c) => {
+  const body = await c.req.json<{
+    sessionId: string
+    word: string
+  }>()
+
+  const gameStateString = await c.env.cloude_kv.get(body.sessionId)
+  if (!gameStateString) {
+    return c.json({ error: 'Game session not found' }, 404)
+  }
+
+  const gameState = parseGameState(gameStateString)
+  if (!gameState) {
+    return c.json({ error: 'Invalid game state' }, 500)
+  }
+
+  const targetItem = gameState.board.find(item => item.word === body.word)
+  if (!targetItem || targetItem.revealed) {
+    return c.json(gameState)
+  }
+
+  // カードを表にする
+  targetItem.revealed = true
+  gameState.remainingGuesses = Math.max(0, gameState.remainingGuesses - 1)
+
+  // 判定結果の更新
+  if (targetItem.type === 'spy') {
+    gameState.gameStatus = 'game_over'
+    gameState.remainingGuesses = 0
+  } else {
+    const unrevealedCorrect = gameState.board.filter(i => i.type === 'correct' && !i.revealed)
+    if (unrevealedCorrect.length === 0) {
+      gameState.gameStatus = 'won'
+      gameState.remainingGuesses = 0
+    }
+  }
+
+  gameState.history.push({
+    hint: gameState.currentHint?.hint ?? '',
+    guess: body.word,
+    result: targetItem.type,
+  })
+
+  await c.env.cloude_kv.put(gameState.sessionId, JSON.stringify(gameState))
+  return c.json(gameState)
+})
+
 // AIターン：次のヒントのみを要求して更新するエンドポイント
 game.post('/hint', async (c) => {
   const body = await c.req.json<{
@@ -68,9 +116,13 @@ game.post('/hint', async (c) => {
     gameState = parseGameState(gameStateString)
   }
 
-  const activeBoardItems =
-    body.boardItems ??
-    (gameState ? gameState.board.filter(i => !i.revealed) : [])
+  // フロントから渡された boardItems がある場合は優先して KV の gameState.board も更新
+  if (body.boardItems && gameState) {
+    gameState.board = body.boardItems
+  }
+
+  const currentBoard = body.boardItems ?? gameState?.board ?? []
+  const activeBoardItems = currentBoard.filter(i => !i.revealed)
 
   const correctCount = activeBoardItems.filter(i => i.type === 'correct').length
   if (correctCount === 0) {

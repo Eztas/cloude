@@ -12,6 +12,7 @@ import {
   getHintSystemPrompt,
   getHintUserPrompt,
 } from '../prompts/gamePrompts.ts'
+import { findBestSafeCluster } from '../lib/clustering.ts'
 
 export const generateBoardWords = async (
   env: Bindings,
@@ -49,17 +50,29 @@ export const generateHint = async (
   env: Bindings,
   boardItems: BoardItem[]
 ): Promise<{ hintText: string; reasoning?: string }> => {
-  const correctCount = boardItems.filter((i) => i.type === 'correct').length
-  const maxCount = Math.min(3, correctCount)
+  // 0. めくられた（revealed: true）カードはAIの処理対象から完全に除外する
+  const activeUnrevealedItems = boardItems.filter((i) => i.revealed !== true)
+
+  // 1. ベクトル類似度＆スパイ危険性チェックによる安全なターゲットグループの選定
+  const targetCluster = findBestSafeCluster(activeUnrevealedItems)
+  if (targetCluster.length === 0) {
+    return { hintText: 'ヒントなし' }
+  }
+
+  const targetWords = targetCluster.map((i) => i.word)
+  const spyWords = boardItems.filter((i) => i.type === 'spy' && !i.revealed).map((i) => i.word)
+  const targetCount = targetWords.length
+
+  // 2. 選定されたグループの共通点命名をLLMに要求
   const result = await env.cloude_AI.run(env.WORKERS_AI_HINTS_MODEL_NAME, {
     messages: [
       {
         role: 'system',
-        content: getHintSystemPrompt(maxCount),
+        content: getHintSystemPrompt(targetCount),
       },
       {
         role: 'user',
-        content: getHintUserPrompt(boardItems),
+        content: getHintUserPrompt(targetWords, spyWords),
       },
     ],
     response_format: {
@@ -73,9 +86,8 @@ export const generateHint = async (
 
   if (isAiHintOutput(parsedHint)) {
     const hintWord = parsedHint.hint.replace(/[\s:：枚]/g, '')
-    const count = Math.min(Math.max(1, parsedHint.count), maxCount)
     return {
-      hintText: `${hintWord}: ${count}枚`,
+      hintText: `${hintWord}: ${targetCount}枚`,
       reasoning: parsedHint.reasoning,
     }
   }

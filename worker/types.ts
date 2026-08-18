@@ -10,6 +10,7 @@ export type Bindings = {
 export type BoardItem = {
   word: string
   type: 'correct' | 'spy'
+  revealed: boolean
   vector?: number[]
 }
 

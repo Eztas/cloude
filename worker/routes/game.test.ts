@@ -27,7 +27,12 @@ describe('Game Routes Tests', () => {
       run: async (_model: string, options: any) => {
         if (options?.text) {
           return {
-            data: options.text.map(() => [0.1, 0.2, 0.3]),
+            data: options.text.map((txt: string) => {
+              // 単語文字列を数値ハッシュ化して決定論的な2次元ベクトルを生成
+              let hash = 0
+              for (let i = 0; i < txt.length; i++) hash += txt.charCodeAt(i)
+              return [Math.cos(hash), Math.sin(hash), 0]
+            }),
           }
         }
         if (options?.response_format?.json_schema?.properties?.hint) {
@@ -35,8 +40,8 @@ describe('Game Routes Tests', () => {
             response: {
               reasoning: 'りんごとみかんは果物であり、爆弾には連想されません。',
               hint: '果物',
-              count: 2,
-              targetWords: ['りんご', 'みかん'],
+              count: 3,
+              targetWords: ['単語1', '単語2', '単語3'],
             },
           }
         }
@@ -70,9 +75,10 @@ describe('Game Routes Tests', () => {
     assert.ok(gameState.sessionId)
     assert.ok(gameState.currentHint)
     assert.strictEqual(gameState.currentHint.hint, '果物')
-    assert.strictEqual(gameState.remainingGuesses, 2)
+    assert.strictEqual(gameState.remainingGuesses, 3)
     assert.strictEqual(gameState.board.length, 9)
-    assert.deepStrictEqual(gameState.board[0].vector, [0.1, 0.2, 0.3])
+    assert.ok(Array.isArray(gameState.board[0].vector))
+    assert.strictEqual(gameState.board[0].vector?.length, 3)
   })
 
   test('POST /start - useZenn: false で Zenn トレンドを含めずにゲーム開始', async () => {
