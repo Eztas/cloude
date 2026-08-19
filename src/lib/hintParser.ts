@@ -2,8 +2,8 @@ import type { HintInfo } from '../types/game'
 
 // AIが生成した "ヒント名: X枚" や "ヒント名" の文字列から HintInfo をパースする関数
 export function parseHintString(hintText: string): HintInfo {
-  if (!hintText) {
-    return { hint: 'ヒントなし', count: 1 }
+  if (!hintText || hintText.trim() === 'ヒントなし') {
+    return { hint: 'ヒントなし', count: 0 }
   }
 
   // "料理: 2枚" や "果物：3" などのパターンを正規表現で検出

@@ -3,7 +3,6 @@ import {
   AI_BOARD_SCHEMA,
   AI_HINT_SCHEMA,
   isWordList,
-  isAiHintOutput,
 } from '../lib/validation.ts'
 import { parseAiJsonResponse } from '../lib/jsonParser.ts'
 import {
@@ -84,13 +83,36 @@ export const generateHint = async (
   })
 
   const rawHint = (result as { response?: unknown }).response
-  const parsedHint = parseAiJsonResponse(rawHint)
+  const parsedHint = parseAiJsonResponse<{ hint?: string; reasoning?: string; count?: number }>(rawHint)
 
-  if (isAiHintOutput(parsedHint)) {
-    const hintWord = parsedHint.hint.replace(/[\s:：枚]/g, '')
-    return {
-      hintText: `${hintWord}: ${targetCount}枚`,
-      reasoning: parsedHint.reasoning,
+  if (parsedHint && typeof parsedHint.hint === 'string') {
+    let hintWord = parsedHint.hint.replace(/[\s:：枚]/g, '')
+    // \u30c6 などの Unicode エスケープシーケンスがあれば復元
+    try {
+      hintWord = decodeURIComponent(JSON.parse(`"${hintWord}"`))
+    } catch {
+      // 復元失敗時はそのまま利用
+    }
+
+    if (hintWord.length > 0) {
+      return {
+        hintText: `${hintWord}: ${targetCount}枚`,
+        reasoning: parsedHint.reasoning,
+      }
+    }
+  }
+
+  // 万が一文字パースが崩れていた場合でもフォールバック文字列をチェック
+  if (typeof rawHint === 'string' && rawHint.length > 0) {
+    const match = rawHint.match(/"hint"\s*:\s*"([^"]+)"/)
+    if (match && match[1]) {
+      let matchedWord = match[1].replace(/[\s:：枚]/g, '')
+      try {
+        matchedWord = decodeURIComponent(JSON.parse(`"${matchedWord}"`))
+      } catch {}
+      return {
+        hintText: `${matchedWord}: ${targetCount}枚`,
+      }
     }
   }
 

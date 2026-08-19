@@ -1,8 +1,8 @@
 import type { HintInfo } from '../types.ts'
 
 export function parseHintString(hintText: string): HintInfo {
-  if (!hintText) {
-    return { hint: 'ヒントなし', count: 1 }
+  if (!hintText || hintText.trim() === 'ヒントなし') {
+    return { hint: 'ヒントなし', count: 0 }
   }
 
   const match = hintText.match(/^(.+?)[\s:：]+(\d+)\s*枚?$/)
