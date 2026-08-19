@@ -1,10 +1,11 @@
 import { Hono } from 'hono'
 import type { Bindings, GameState } from '../types.ts'
 import { parseGameState } from '../lib/validation.ts'
-import { generateBoardWords, generateHint } from '../services/aiService.ts'
+import { generateBoardWords, generateHint, generateEmbeddings } from '../services/aiService.ts'
 import { fetchZennTitles } from '../services/zennFeed.ts'
 import { parseHintString } from '../lib/hintParser.ts'
 import { assignBoardTypes } from '../lib/boardAssigner.ts'
+import { calculateBoardSpySimilarities } from '../lib/similarity.ts'
 
 const game = new Hono<{ Bindings: Bindings }>()
 
@@ -26,12 +27,16 @@ game.post('/start', async (c) => {
     return c.json({ error: 'Failed to generate valid game board' }, 500)
   }
 
-  const rawBoard = assignBoardTypes(words)
+  const baseBoard = assignBoardTypes(words)
+
+  // Embeddingを取得してスパイ最高類似度 (spySimilarity) を計算・付与
+  const embeddings = await generateEmbeddings(c.env, words)
+  const rawBoard = calculateBoardSpySimilarities(baseBoard, embeddings)
 
   // 初期ヒント生成
   const spyWords = rawBoard.filter(i => i.type === 'spy').map(i => i.word)
-  const correctWords = rawBoard.filter(i => i.type === 'correct').map(i => i.word)
-  const { hintText, reasoning } = await generateHint(c.env, correctWords, spyWords)
+  const correctItems = rawBoard.filter(i => i.type === 'correct')
+  const { hintText, reasoning } = await generateHint(c.env, correctItems, spyWords)
   const currentHint = {
     ...parseHintString(hintText),
     ...(reasoning ? { reasoning } : {}),
@@ -64,18 +69,19 @@ game.post('/hint', async (c) => {
     gameState = parseGameState(gameStateString)
   }
 
-  const correctWords =
-    body.correctWords ??
-    (gameState ? gameState.board.filter(i => i.type === 'correct' && !i.revealed).map(i => i.word) : [])
+  const correctItems =
+    gameState
+      ? gameState.board.filter(i => i.type === 'correct' && !i.revealed)
+      : (body.correctWords ?? [])
   const spyWords =
     body.spyWords ??
     (gameState ? gameState.board.filter(i => i.type === 'spy').map(i => i.word) : [])
 
-  if (correctWords.length === 0) {
+  if (correctItems.length === 0) {
     return c.json({ error: 'No remaining correct words for hint' }, 400)
   }
 
-  const { hintText, reasoning } = await generateHint(c.env, correctWords, spyWords)
+  const { hintText, reasoning } = await generateHint(c.env, correctItems, spyWords)
   const currentHint = {
     ...parseHintString(hintText),
     ...(reasoning ? { reasoning } : {}),
