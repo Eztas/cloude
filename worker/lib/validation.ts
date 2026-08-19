@@ -9,27 +9,13 @@ export const parseGameState = (str: string): GameState | null => {
 }
 
 export const isBoardItem = (item: unknown): item is BoardItem => {
-  if (
-    typeof item !== 'object' ||
-    item === null ||
-    typeof (item as Record<string, unknown>).word !== 'string'
-  ) {
-    return false
-  }
-
-  const type = (item as Record<string, unknown>).type
-  if (type !== 'correct' && type !== 'spy') {
-    return false
-  }
-
-  const vector = (item as Record<string, unknown>).vector
-  if (vector !== undefined) {
-    if (!Array.isArray(vector) || !vector.every((v) => typeof v === 'number')) {
-      return false
-    }
-  }
-
-  return true
+  return (
+    typeof item === 'object' &&
+    item !== null &&
+    typeof (item as Record<string, unknown>).word === 'string' &&
+    ((item as Record<string, unknown>).type === 'correct' ||
+      (item as Record<string, unknown>).type === 'spy')
+  )
 }
 
 export const isWordList = (words: unknown): words is string[] => {

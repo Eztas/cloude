@@ -1,6 +1,6 @@
 import assert from 'node:assert'
 import { describe, test } from 'node:test'
-import { generateHint, generateBoardWords, generateEmbeddings } from './aiService.ts'
+import { generateHint, generateBoardWords } from './aiService.ts'
 import type { Bindings } from '../types.ts'
 
 describe('aiService Unit Tests', () => {
@@ -14,11 +14,7 @@ describe('aiService Unit Tests', () => {
       },
     } as unknown as Bindings
 
-    const result = await generateHint(mockEnv, [
-      { word: 'JavaScript', type: 'correct' },
-      { word: 'TypeScript', type: 'correct' },
-      { word: 'Python', type: 'spy' },
-    ])
+    const result = await generateHint(mockEnv, ['JavaScript', 'TypeScript'], ['Python'])
     assert.strictEqual(result.hintText, 'プログラミング: 2枚')
     assert.strictEqual(result.reasoning, '思考プロセス')
   })
@@ -33,10 +29,7 @@ describe('aiService Unit Tests', () => {
       },
     } as unknown as Bindings
 
-    const result = await generateHint(mockEnv, [
-      { word: 'Ruby', type: 'correct' },
-      { word: 'Rust', type: 'spy' },
-    ])
+    const result = await generateHint(mockEnv, ['Ruby'], ['Rust'])
     assert.strictEqual(result.hintText, '言語: 1枚')
     assert.strictEqual(result.reasoning, 'コードブロック思考')
   })
@@ -66,23 +59,8 @@ describe('aiService Unit Tests', () => {
       },
     } as unknown as Bindings
 
-    const result = await generateHint(mockEnv, [{ word: 'JavaScript', type: 'correct' }])
+    const result = await generateHint(mockEnv, ['JavaScript'], ['Python'])
     assert.strictEqual(result.hintText, 'ヒントなし')
-  })
-
-  test('generateEmbeddings - 単語リストのベクトル配列を取得できること', async () => {
-    const mockEnv = {
-      cloude_AI: {
-        run: async () => ({
-          data: [[0.1, 0.2], [0.3, 0.4]],
-        }),
-      },
-    } as unknown as Bindings
-
-    const embeddings = await generateEmbeddings(mockEnv, ['公園', 'GPU'])
-    assert.strictEqual(embeddings?.length, 2)
-    assert.deepStrictEqual(embeddings?.[0], [0.1, 0.2])
-    assert.deepStrictEqual(embeddings?.[1], [0.3, 0.4])
   })
 })
 

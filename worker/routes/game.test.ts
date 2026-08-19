@@ -25,23 +25,13 @@ describe('Game Routes Tests', () => {
     },
     cloude_AI: {
       run: async (_model: string, options: any) => {
-        if (options?.text) {
-          return {
-            data: options.text.map((txt: string) => {
-              // 単語文字列を数値ハッシュ化して決定論的な2次元ベクトルを生成
-              let hash = 0
-              for (let i = 0; i < txt.length; i++) hash += txt.charCodeAt(i)
-              return [Math.cos(hash), Math.sin(hash), 0]
-            }),
-          }
-        }
         if (options?.response_format?.json_schema?.properties?.hint) {
           return {
             response: {
               reasoning: 'りんごとみかんは果物であり、爆弾には連想されません。',
               hint: '果物',
-              count: 3,
-              targetWords: ['単語1', '単語2', '単語3'],
+              count: 2,
+              targetWords: ['りんご', 'みかん'],
             },
           }
         }
@@ -75,10 +65,7 @@ describe('Game Routes Tests', () => {
     assert.ok(gameState.sessionId)
     assert.ok(gameState.currentHint)
     assert.strictEqual(gameState.currentHint.hint, '果物')
-    assert.strictEqual(gameState.remainingGuesses, 3)
-    assert.strictEqual(gameState.board.length, 9)
-    assert.ok(Array.isArray(gameState.board[0].vector))
-    assert.strictEqual(gameState.board[0].vector?.length, 3)
+    assert.strictEqual(gameState.remainingGuesses, 2)
   })
 
   test('POST /start - useZenn: false で Zenn トレンドを含めずにゲーム開始', async () => {
@@ -113,14 +100,7 @@ describe('Game Routes Tests', () => {
   test('POST /hint - 次のヒント生成要求', async () => {
     const hintRes = await gameApp.request('/hint', {
       method: 'POST',
-      body: JSON.stringify({
-        sessionId: '1',
-        boardItems: [
-          { word: 'りんご', type: 'correct' },
-          { word: 'みかん', type: 'correct' },
-          { word: '爆弾', type: 'spy' },
-        ],
-      }),
+      body: JSON.stringify({ sessionId: '1', correctWords: ['りんご', 'みかん'], spyWords: ['爆弾'] }),
       headers: { 'Content-Type': 'application/json' }
     }, mockEnv)
     assert.strictEqual(hintRes.status, 200)

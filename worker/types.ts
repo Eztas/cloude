@@ -3,15 +3,12 @@ export type Bindings = {
   cloude_AI: Ai
   WORKERS_AI_WORDS_MODEL_NAME: string
   WORKERS_AI_HINTS_MODEL_NAME: string
-  WORKERS_AI_EMBEDDING_MODEL_NAME?: string
   ZENN_FEED_URL: string
 }
 
 export type BoardItem = {
   word: string
   type: 'correct' | 'spy'
-  revealed: boolean
-  vector?: number[]
 }
 
 export type HintInfo = {
