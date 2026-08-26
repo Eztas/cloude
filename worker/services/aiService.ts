@@ -1,8 +1,9 @@
-import type { Bindings, BoardItem } from '../types.ts'
+import type { Bindings } from '../types.ts'
 import {
   AI_BOARD_SCHEMA,
   AI_HINT_SCHEMA,
   isWordList,
+  isAiHintOutput,
 } from '../lib/validation.ts'
 import { parseAiJsonResponse } from '../lib/jsonParser.ts'
 import {
@@ -46,34 +47,19 @@ export const generateBoardWords = async (
 
 export const generateHint = async (
   env: Bindings,
-  correctWords: (string | BoardItem)[],
+  correctWords: string[],
   spyWords: string[] = []
 ): Promise<{ hintText: string; reasoning?: string }> => {
-  if (correctWords.length === 0) {
-    return { hintText: 'ヒントなし' }
-  }
-
-  // バックエンド側で spySimilarity（低いほど安全）に基づいてソート
-  const sortedItems = [...correctWords].sort((a, b) => {
-    const simA = typeof a === 'string' ? 0 : (a.spySimilarity ?? 0)
-    const simB = typeof b === 'string' ? 0 : (b.spySimilarity ?? 0)
-    return simA - simB
-  })
-
-  // 最も安全な上位2〜3個の単語グループを自動選定
-  const targetCount = Math.min(3, Math.max(1, Math.min(sortedItems.length, 3)))
-  const selectedGroupItems = sortedItems.slice(0, targetCount)
-  const selectedGroupWords = selectedGroupItems.map(item => typeof item === 'string' ? item : item.word)
-
+  const maxCount = Math.min(3, correctWords.length)
   const result = await env.cloude_AI.run(env.WORKERS_AI_HINTS_MODEL_NAME, {
     messages: [
       {
         role: 'system',
-        content: getHintSystemPrompt(targetCount),
+        content: getHintSystemPrompt(maxCount),
       },
       {
         role: 'user',
-        content: getHintUserPrompt(selectedGroupWords, spyWords),
+        content: getHintUserPrompt(correctWords, spyWords),
       },
     ],
     response_format: {
@@ -83,59 +69,16 @@ export const generateHint = async (
   })
 
   const rawHint = (result as { response?: unknown }).response
-  const parsedHint = parseAiJsonResponse<{ hint?: string; reasoning?: string; count?: number }>(rawHint)
+  const parsedHint = parseAiJsonResponse(rawHint)
 
-  if (parsedHint && typeof parsedHint.hint === 'string') {
-    let hintWord = parsedHint.hint.replace(/[\s:：枚]/g, '')
-    // \u30c6 などの Unicode エスケープシーケンスがあれば復元
-    try {
-      hintWord = decodeURIComponent(JSON.parse(`"${hintWord}"`))
-    } catch {
-      // 復元失敗時はそのまま利用
-    }
-
-    if (hintWord.length > 0) {
-      return {
-        hintText: `${hintWord}: ${targetCount}枚`,
-        reasoning: parsedHint.reasoning,
-      }
-    }
-  }
-
-  // 万が一文字パースが崩れていた場合でもフォールバック文字列をチェック
-  if (typeof rawHint === 'string' && rawHint.length > 0) {
-    const match = rawHint.match(/"hint"\s*:\s*"([^"]+)"/)
-    if (match && match[1]) {
-      let matchedWord = match[1].replace(/[\s:：枚]/g, '')
-      try {
-        matchedWord = decodeURIComponent(JSON.parse(`"${matchedWord}"`))
-      } catch {}
-      return {
-        hintText: `${matchedWord}: ${targetCount}枚`,
-      }
+  if (isAiHintOutput(parsedHint)) {
+    const hintWord = parsedHint.hint.replace(/[\s:：枚]/g, '')
+    const count = Math.min(Math.max(1, parsedHint.count), maxCount)
+    return {
+      hintText: `${hintWord}: ${count}枚`,
+      reasoning: parsedHint.reasoning,
     }
   }
 
   return { hintText: 'ヒントなし' }
-}
-
-export const generateEmbeddings = async (
-  env: Bindings,
-  texts: string[]
-): Promise<number[][] | null> => {
-  if (texts.length === 0) return []
-  const model = env.WORKERS_AI_EMBEDDING_MODEL_NAME || '@cf/baai/bge-base-en-v1.5'
-  try {
-    const result = await env.cloude_AI.run(model as Parameters<typeof env.cloude_AI.run>[0], {
-      text: texts,
-    })
-    const data = (result as { data?: number[][] }).data
-    if (Array.isArray(data) && data.length === texts.length) {
-      return data
-    }
-    return null
-  } catch (error) {
-    console.error('Failed to generate embeddings:', error)
-    return null
-  }
 }

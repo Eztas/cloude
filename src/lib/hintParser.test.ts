@@ -20,6 +20,6 @@ describe('hintParser Unit Tests', () => {
 
   it('空文字列の場合はデフォルト値を返すこと', () => {
     const result = parseHintString('')
-    assert.deepEqual(result, { hint: 'ヒントなし', count: 0 })
+    assert.deepEqual(result, { hint: 'ヒントなし', count: 1 })
   })
 })

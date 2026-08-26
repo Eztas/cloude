@@ -77,5 +77,5 @@ export const AI_HINT_SCHEMA = {
       description: 'ヒントに関連付けた正解単語（1〜3個）',
     },
   },
-  required: ['reasoning', 'hint', 'count'],
+  required: ['reasoning', 'hint', 'count', 'targetWords'],
 }
