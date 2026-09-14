@@ -1,6 +1,6 @@
 import assert from 'node:assert'
 import { describe, test } from 'node:test'
-import { generateHint, generateBoardWords } from './aiService.ts'
+import { generateHint, generateBoardWords, guessWords } from './aiService.ts'
 import type { Bindings } from '../types.ts'
 
 describe('aiService Unit Tests', () => {
@@ -62,5 +62,48 @@ describe('aiService Unit Tests', () => {
     const result = await generateHint(mockEnv, ['JavaScript'], ['Python'])
     assert.strictEqual(result.hintText, 'ヒントなし')
   })
-})
 
+  test('guessWordsByAi - 正常なレスポンスから推測結果を返すこと', async () => {
+    const mockEnv = {
+      WORKERS_AI_HINTS_MODEL_NAME: '@cf/meta/llama-3-instruct',
+      cloude_AI: {
+        run: async () => ({
+          response: '{"guesses": ["飛行機", "電車"], "reasoning": "乗り物カテゴリ"}',
+        }),
+      },
+    } as unknown as Bindings
+
+    const result = await guessWords(mockEnv, '乗り物', 2, ['飛行機', '電車', 'りんご'])
+    assert.deepStrictEqual(result?.guesses, ['飛行機', '電車'])
+    assert.strictEqual(result?.reasoning, '乗り物カテゴリ')
+  })
+
+  test('guessWords - 盤面にない単語を除外し、count上限で切り捨てること', async () => {
+    const mockEnv = {
+      WORKERS_AI_HINTS_MODEL_NAME: '@cf/meta/llama-3-instruct',
+      cloude_AI: {
+        run: async () => ({
+          response: '{"guesses": ["飛行機", "幽霊船", "電車", "バス"], "reasoning": "乗り物"}',
+        }),
+      },
+    } as unknown as Bindings
+
+    // 候補: 飛行機・電車・りんご、幽霊船は盤面外、count=2
+    const result = await guessWords(mockEnv, '乗り物', 2, ['飛行機', '電車', 'りんご'])
+    assert.deepStrictEqual(result?.guesses, ['飛行機', '電車'])
+  })
+
+  test('guessWords - 不正なレスポンスの場合にnullを返すこと', async () => {
+    const mockEnv = {
+      WORKERS_AI_HINTS_MODEL_NAME: '@cf/meta/llama-3-instruct',
+      cloude_AI: {
+        run: async () => ({
+          response: '不正なテキスト',
+        }),
+      },
+    } as unknown as Bindings
+
+    const result = await guessWords(mockEnv, '乗り物', 2, ['飛行機', '電車'])
+    assert.strictEqual(result, null)
+  })
+})
