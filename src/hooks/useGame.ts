@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { GameState, HintInfo } from '@/types/game'
+import type { GameState, GameMode, HintInfo } from '@/types/game'
 import { applyGuess } from '@/lib/gameRules'
 
 export function useGame() {
@@ -9,13 +9,15 @@ export function useGame() {
   const [error, setError] = useState<string | null>(null)
   const [guessingWord, setGuessingWord] = useState<string | null>(null)
   const [useZenn, setUseZenn] = useState<boolean>(true)
+  const [mode, setMode] = useState<GameMode>('ai_hint')
 
   // ゲーム開始ハンドラー
   const handleStartGame = async () => {
     setIsLoading(true)
     setError(null)
     try {
-      const res = await fetch('/api/game/start', {
+      const endpoint = mode === 'ai_hint' ? '/api/game/start/ai-hint' : '/api/game/start/user-hint'
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ useZenn }),
@@ -33,7 +35,7 @@ export function useGame() {
     }
   }
 
-  // 次のAIヒントを取得する関数
+  // 次のAIヒントを取得する関数（諜報員モード専用）
   const fetchNextHint = async (currentState: GameState) => {
     const remainingCorrect = currentState.board
       .filter(i => i.type === 'correct' && !i.revealed)
@@ -76,7 +78,7 @@ export function useGame() {
     }
   }
 
-  // カード選択（回答）ハンドラー（フロントエンド即時判定）
+  // カード選択（回答）ハンドラー（諜報員モード・フロントエンド即時判定）
   const handleGuess = async (word: string) => {
     if (!gameState || gameState.gameStatus !== 'playing' || guessingWord || isFetchingHint) {
       return
@@ -85,18 +87,44 @@ export function useGame() {
     setGuessingWord(word)
     setError(null)
 
-    // 1. 即座にフロントエンド側で正誤判定・カード開示・デクリメント
+    // 即座にフロントエンド側で正誤判定・カード開示・デクリメント
     const nextState = applyGuess(gameState, word)
     setGameState(nextState)
     setGuessingWord(null)
 
-    // 2. もしゲーム継続中で残り推測回数が 0 に達した場合はAIヒントを取得
+    // ゲーム継続中で残り推測回数が 0 に達した場合はAIヒントを取得
     if (nextState.gameStatus === 'playing' && nextState.remainingGuesses === 0) {
       await fetchNextHint(nextState)
     }
   }
 
-  // 手動でAIヒントを再生成・リロードするハンドラー
+  // スパイマスターモード: プレイヤーのヒントを送信してAIに推測させるハンドラー
+  const handleAiGuess = async (hint: string, count: number) => {
+    if (!gameState || gameState.gameStatus !== 'playing' || isFetchingHint) return
+
+    setIsFetchingHint(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/game/ai-guess', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId: gameState.sessionId, hint, count }),
+      })
+
+      if (!res.ok) {
+        throw new Error('AIの推測に失敗しました')
+      }
+
+      const data: { gameState: GameState; reasoning: string } = await res.json()
+      setGameState(data.gameState)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'AI推測中にエラーが発生しました')
+    } finally {
+      setIsFetchingHint(false)
+    }
+  }
+
+  // 手動でAIヒントを再生成・リロードするハンドラー（諜報員モード専用）
   const handleReloadHint = async () => {
     if (!gameState || gameState.gameStatus !== 'playing' || isFetchingHint || isLoading) {
       return
@@ -116,10 +144,12 @@ export function useGame() {
     guessingWord,
     useZenn,
     setUseZenn,
+    mode,
+    setMode,
     handleStartGame,
     handleGuess,
+    handleAiGuess,
     handleReloadHint,
     remainingCorrect,
   }
 }
-

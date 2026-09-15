@@ -17,11 +17,19 @@ export type HintInfo = {
   reasoning?: string
 }
 
+export type GameMode = 'ai_hint' | 'user_hint'
+
 export interface GameState {
   sessionId: string
+  mode?: GameMode
   board: (BoardItem & { revealed: boolean })[]
   gameStatus: 'playing' | 'won' | 'game_over'
   history: { hint: string; guess: string; result: 'correct' | 'spy' }[]
   currentHint?: HintInfo | null
   remainingGuesses: number
+}
+
+export type AiGuessOutput = {
+  guesses: string[]
+  reasoning?: string
 }

@@ -1,9 +1,11 @@
-import type { Bindings } from '../types.ts'
+import type { Bindings, AiGuessOutput } from '../types.ts'
 import {
   AI_BOARD_SCHEMA,
   AI_HINT_SCHEMA,
+  AI_GUESS_SCHEMA,
   isWordList,
   isAiHintOutput,
+  isAiGuessOutput,
 } from '../lib/validation.ts'
 import { parseAiJsonResponse } from '../lib/jsonParser.ts'
 import {
@@ -12,6 +14,10 @@ import {
   getHintSystemPrompt,
   getHintUserPrompt,
 } from '../prompts/gamePrompts.ts'
+import {
+  GUESSER_SYSTEM_PROMPT,
+  getGuesserUserPrompt,
+} from '../prompts/guesserPrompts.ts'
 
 export const generateBoardWords = async (
   env: Bindings,
@@ -81,4 +87,42 @@ export const generateHint = async (
   }
 
   return { hintText: 'ヒントなし' }
+}
+
+export const guessWords = async (
+  env: Bindings,
+  hint: string,
+  count: number,
+  candidateWords: string[]
+): Promise<AiGuessOutput | null> => {
+  const result = await env.cloude_AI.run(env.WORKERS_AI_HINTS_MODEL_NAME, {
+    messages: [
+      {
+        role: 'system',
+        content: GUESSER_SYSTEM_PROMPT,
+      },
+      {
+        role: 'user',
+        content: getGuesserUserPrompt(hint, count, candidateWords),
+      },
+    ],
+    response_format: {
+      type: 'json_schema',
+      json_schema: AI_GUESS_SCHEMA,
+    },
+  })
+
+  const raw = (result as { response?: unknown }).response
+  const parsed = parseAiJsonResponse(raw)
+
+  if (!isAiGuessOutput(parsed)) {
+    return null
+  }
+
+  // 盤面にない単語を除外し、count上限でトリム
+  const validGuesses = parsed.guesses
+    .filter(g => candidateWords.includes(g))
+    .slice(0, count)
+
+  return { guesses: validGuesses, reasoning: parsed.reasoning }
 }

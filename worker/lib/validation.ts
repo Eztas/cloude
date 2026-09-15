@@ -1,4 +1,4 @@
-import type { BoardItem, GameState } from '../types.ts'
+import type { BoardItem, GameState, AiGuessOutput } from '../types.ts'
 
 export const parseGameState = (str: string): GameState | null => {
   try {
@@ -78,4 +78,33 @@ export const AI_HINT_SCHEMA = {
     },
   },
   required: ['reasoning', 'hint', 'count', 'targetWords'],
+}
+
+export const isAiGuessOutput = (obj: unknown): obj is AiGuessOutput => {
+  if (typeof obj !== 'object' || obj === null) return false
+  const record = obj as Record<string, unknown>
+  const guesses = record.guesses
+  if (!Array.isArray(guesses) || !guesses.every(g => typeof g === 'string')) {
+    return false
+  }
+  if (record.reasoning !== undefined && typeof record.reasoning !== 'string') {
+    return false
+  }
+  return true
+}
+
+export const AI_GUESS_SCHEMA = {
+  type: 'object',
+  properties: {
+    reasoning: {
+      type: 'string',
+      description: 'なぜその単語を選んだのかの思考プロセスや連想の根拠',
+    },
+    guesses: {
+      type: 'array',
+      items: { type: 'string' },
+      description: '盤面の未開封単語リストの中から、ヒントに最も合致すると推論した単語（確信度の高い順）',
+    },
+  },
+  required: ['reasoning', 'guesses'],
 }

@@ -11,6 +11,7 @@ describe('Game Routes Tests', () => {
     cloude_kv: {
       get: async (key: string) => JSON.stringify({
         sessionId: key,
+        mode: 'user_hint',
         board: [
           { word: 'りんご', type: 'correct', revealed: false },
           { word: 'みかん', type: 'correct', revealed: false },
@@ -18,8 +19,8 @@ describe('Game Routes Tests', () => {
         ],
         gameStatus: 'playing',
         history: [],
-        currentHint: { hint: '果物', count: 2 },
-        remainingGuesses: 2
+        currentHint: null,
+        remainingGuesses: 0,
       }),
       put: async () => { }
     },
@@ -38,10 +39,13 @@ describe('Game Routes Tests', () => {
         if (options?.response_format?.json_schema?.properties?.words) {
           return {
             response: {
-              words: [
-                '単語1', '単語2', '単語3', '単語4', '単語5', '単語6', '単語7', '単語8', '単語9'
-              ]
+              words: ['単語1', '単語2', '単語3', '単語4', '単語5', '単語6', '単語7', '単語8', '単語9']
             }
+          }
+        }
+        if (options?.response_format?.json_schema?.properties?.guesses) {
+          return {
+            response: { guesses: ['りんご'], reasoning: 'ヒントに合致' }
           }
         }
         return { response: '果物: 2枚' }
@@ -49,28 +53,9 @@ describe('Game Routes Tests', () => {
     }
   }
 
-  test('POST /start - ゲームの開始とセッションIDの生成 (デフォルト/useZenn: true)', async () => {
-    const startRes = await gameApp.request(
-      '/start',
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ useZenn: true }),
-      },
-      mockEnv
-    )
-    assert.strictEqual(startRes.status, 200)
-
-    const gameState = (await startRes.json()) as GameState
-    assert.ok(gameState.sessionId)
-    assert.ok(gameState.currentHint)
-    assert.strictEqual(gameState.currentHint.hint, '果物')
-    assert.strictEqual(gameState.remainingGuesses, 2)
-  })
-
-  test('POST /start - useZenn: false で Zenn トレンドを含めずにゲーム開始', async () => {
-    const startRes = await gameApp.request(
-      '/start',
+  test('POST /start/ai-hint - 諜報員モードでゲームを開始しヒントが生成されること', async () => {
+    const res = await gameApp.request(
+      '/start/ai-hint',
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -78,36 +63,103 @@ describe('Game Routes Tests', () => {
       },
       mockEnv
     )
-    assert.strictEqual(startRes.status, 200)
+    assert.strictEqual(res.status, 200)
 
-    const gameState = (await startRes.json()) as GameState
+    const gameState = (await res.json()) as GameState
     assert.ok(gameState.sessionId)
+    assert.strictEqual(gameState.mode, 'ai_hint')
+    assert.ok(gameState.currentHint)
+    assert.strictEqual(gameState.currentHint.hint, '果物')
+    assert.strictEqual(gameState.remainingGuesses, 2)
+  })
+
+  test('POST /start/user-hint - スパイマスターモードでゲームを開始しヒントなしで即時返却されること', async () => {
+    const res = await gameApp.request(
+      '/start/user-hint',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ useZenn: false }),
+      },
+      mockEnv
+    )
+    assert.strictEqual(res.status, 200)
+
+    const gameState = (await res.json()) as GameState
+    assert.ok(gameState.sessionId)
+    assert.strictEqual(gameState.mode, 'user_hint')
+    assert.strictEqual(gameState.currentHint, null)
+    assert.strictEqual(gameState.remainingGuesses, 0)
     assert.strictEqual(gameState.board.length, 9)
   })
 
-  test('POST /start - 不正なAI出力の場合に500エラーを返す', async () => {
+  test('POST /start/ai-hint - 不正なAI出力の場合に500エラーを返す', async () => {
     const invalidAiEnv = {
       ...mockEnv,
       cloude_AI: { run: async () => 'invalid-ai-response' }
     }
-    const startRes = await gameApp.request('/start', { method: 'POST' }, invalidAiEnv)
-    assert.strictEqual(startRes.status, 500)
+    const res = await gameApp.request('/start/ai-hint', { method: 'POST' }, invalidAiEnv)
+    assert.strictEqual(res.status, 500)
 
-    const errorJson = (await startRes.json()) as { error: string }
+    const errorJson = (await res.json()) as { error: string }
     assert.strictEqual(errorJson.error, 'Failed to generate valid game board')
   })
 
   test('POST /hint - 次のヒント生成要求', async () => {
+    const hintEnv = {
+      ...mockEnv,
+      cloude_kv: {
+        ...mockEnv.cloude_kv,
+        get: async (key: string) => JSON.stringify({
+          sessionId: key,
+          mode: 'ai_hint',
+          board: [
+            { word: 'りんご', type: 'correct', revealed: false },
+            { word: 'みかん', type: 'correct', revealed: false },
+            { word: '爆弾', type: 'spy', revealed: false },
+          ],
+          gameStatus: 'playing',
+          history: [],
+          currentHint: { hint: '果物', count: 2 },
+          remainingGuesses: 2,
+        }),
+      },
+    }
     const hintRes = await gameApp.request('/hint', {
       method: 'POST',
       body: JSON.stringify({ sessionId: '1', correctWords: ['りんご', 'みかん'], spyWords: ['爆弾'] }),
       headers: { 'Content-Type': 'application/json' }
-    }, mockEnv)
+    }, hintEnv)
     assert.strictEqual(hintRes.status, 200)
 
     const json = (await hintRes.json()) as { currentHint: HintInfo; remainingGuesses: number }
     assert.strictEqual(json.currentHint.hint, '果物')
     assert.strictEqual(json.remainingGuesses, 2)
   })
-})
 
+  test('POST /ai-guess - AIが推測してカードを開示すること', async () => {
+    const res = await gameApp.request('/ai-guess', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId: 'session-1', hint: '果物', count: 1 }),
+    }, mockEnv)
+    assert.strictEqual(res.status, 200)
+
+    const json = (await res.json()) as { gameState: GameState; reasoning: string }
+    const revealedWords = json.gameState.board.filter(i => i.revealed).map(i => i.word)
+    assert.ok(revealedWords.includes('りんご'))
+  })
+
+  test('POST /ai-guess - セッションが存在しない場合に404を返すこと', async () => {
+    const noSessionEnv = {
+      ...mockEnv,
+      cloude_kv: { get: async () => null, put: async () => { } }
+    }
+    const res = await gameApp.request('/ai-guess', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId: 'no-session', hint: '果物', count: 1 }),
+    }, noSessionEnv)
+    assert.strictEqual(res.status, 404)
+  })
+})
