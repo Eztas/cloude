@@ -18,18 +18,23 @@ export function GameBoard({ board, gameStatus, guessingWord, isMaster = false, o
         const isSelected = guessingWord === item.word
 
         let cardStyle =
-          'bg-slate-800/80 border-slate-700 hover:border-sky-500 hover:bg-slate-800 hover:shadow-sky-500/10 cursor-pointer'
-        
-        // カードの開示状態、またはマスターモードなら色を変える
-        const showType = item.revealed || isMaster
-        
-        if (showType) {
+          'bg-slate-700/50 border-slate-600 text-slate-300 hover:border-slate-400'
+
+        if (item.revealed) {
           if (item.type === 'spy') {
-            cardStyle = 'bg-rose-950/90 border-rose-600 text-rose-200 shadow-rose-900/50'
+            cardStyle =
+              'bg-rose-950/90 border-rose-600 text-rose-200 shadow-rose-900/50'
           } else {
-            cardStyle = 'bg-emerald-950/90 border-emerald-600 text-emerald-200 shadow-emerald-900/50'
+            cardStyle =
+              'bg-emerald-950/90 border-emerald-600 text-emerald-200 shadow-emerald-900/50'
           }
+        } else if (item.type === 'spy') {
+          // 未選択の不正解は赤
+          cardStyle =
+            'bg-rose-950/90 border-rose-600 text-rose-200 shadow-rose-900/50'
         }
+
+        const showTag = item.revealed
 
         return (
           <button
@@ -44,7 +49,7 @@ export function GameBoard({ board, gameStatus, guessingWord, isMaster = false, o
               {item.word}
             </span>
 
-            {showType && (
+            {showTag && (
               <span className="mt-2 text-xs px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider bg-black/40">
                 {item.type === 'spy' ? 'スパイ' : '正解'}
               </span>
