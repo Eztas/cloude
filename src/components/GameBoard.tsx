@@ -5,10 +5,11 @@ interface GameBoardProps {
   board: BoardItem[]
   gameStatus: 'playing' | 'won' | 'game_over'
   guessingWord: string | null
+  isMaster?: boolean
   onGuess: (word: string) => void
 }
 
-export function GameBoard({ board, gameStatus, guessingWord, onGuess }: GameBoardProps) {
+export function GameBoard({ board, gameStatus, guessingWord, isMaster = false, onGuess }: GameBoardProps) {
   const isPlaying = gameStatus === 'playing'
 
   return (
@@ -18,7 +19,11 @@ export function GameBoard({ board, gameStatus, guessingWord, onGuess }: GameBoar
 
         let cardStyle =
           'bg-slate-800/80 border-slate-700 hover:border-sky-500 hover:bg-slate-800 hover:shadow-sky-500/10 cursor-pointer'
-        if (item.revealed) {
+        
+        // カードの開示状態、またはマスターモードなら色を変える
+        const showType = item.revealed || isMaster
+        
+        if (showType) {
           if (item.type === 'spy') {
             cardStyle = 'bg-rose-950/90 border-rose-600 text-rose-200 shadow-rose-900/50'
           } else {
@@ -30,7 +35,7 @@ export function GameBoard({ board, gameStatus, guessingWord, onGuess }: GameBoar
           <button
             key={idx}
             onClick={() => onGuess(item.word)}
-            disabled={!isPlaying || item.revealed || !!guessingWord}
+            disabled={!isPlaying || (item.revealed && !isMaster) || !!guessingWord}
             className={`relative aspect-square p-3 rounded-xl border flex flex-col items-center justify-center text-center transition-all duration-300 transform font-medium select-none shadow-md ${cardStyle} ${
               isSelected ? 'scale-95 opacity-80' : 'hover:-translate-y-1'
             }`}
@@ -39,7 +44,7 @@ export function GameBoard({ board, gameStatus, guessingWord, onGuess }: GameBoar
               {item.word}
             </span>
 
-            {item.revealed && (
+            {showType && (
               <span className="mt-2 text-xs px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider bg-black/40">
                 {item.type === 'spy' ? 'スパイ' : '正解'}
               </span>
