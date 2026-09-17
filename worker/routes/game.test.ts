@@ -67,7 +67,7 @@ describe('Game Routes Tests', () => {
 
     const gameState = (await res.json()) as GameState
     assert.ok(gameState.sessionId)
-    assert.strictEqual(gameState.mode, 'ai_hint')
+    assert.strictEqual(gameState.mode, 'user_hint')
     assert.ok(gameState.currentHint)
     assert.strictEqual(gameState.currentHint.hint, '果物')
     assert.strictEqual(gameState.remainingGuesses, 2)

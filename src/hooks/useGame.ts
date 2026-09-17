@@ -9,7 +9,7 @@ export function useGame() {
   const [error, setError] = useState<string | null>(null)
   const [guessingWord, setGuessingWord] = useState<string | null>(null)
   const [useZenn, setUseZenn] = useState<boolean>(true)
-  const [mode, setMode] = useState<GameMode>('ai_hint')
+  const [mode, setMode] = useState<GameMode>('user_hint')
 
   // ゲーム開始ハンドラー
   const handleStartGame = async () => {
