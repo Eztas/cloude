@@ -29,6 +29,7 @@ export function HintInputForm({ onSendHint, disabled }: HintInputFormProps) {
           onChange={(e) => setHint(e.target.value)}
           placeholder="ヒント単語を入力..."
           className="flex-1 px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-sky-500"
+          maxLength={10}
           disabled={disabled}
         />
         <input
