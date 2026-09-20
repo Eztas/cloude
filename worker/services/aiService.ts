@@ -6,6 +6,7 @@ import {
   isWordList,
   isAiHintOutput,
   isAiGuessOutput,
+  isValidUserHint,
 } from '../lib/validation.ts'
 import { parseAiJsonResponse } from '../lib/jsonParser.ts'
 import {
@@ -95,6 +96,12 @@ export const guessWords = async (
   count: number,
   candidateWords: string[]
 ): Promise<AiGuessOutput | null> => {
+  const trimmedHint = hint?.trim()
+  if (!isValidUserHint(trimmedHint, 10)) {
+    return null
+  }
+
+  const safeCount = Math.max(1, count)
   const result = await env.cloude_AI.run(env.WORKERS_AI_HINTS_MODEL_NAME, {
     messages: [
       {
@@ -103,7 +110,7 @@ export const guessWords = async (
       },
       {
         role: 'user',
-        content: getGuesserUserPrompt(hint, count, candidateWords),
+        content: getGuesserUserPrompt(trimmedHint, safeCount, candidateWords),
       },
     ],
     response_format: {

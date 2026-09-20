@@ -26,6 +26,10 @@ export const isBoardItemList = (items: unknown): items is BoardItem[] => {
   return Array.isArray(items) && items.length > 0 && items.every(isBoardItem)
 }
 
+export const isValidUserHint = (hint: unknown, maxLen = 10): hint is string => {
+  return typeof hint === 'string' && hint.trim().length > 0 && hint.trim().length <= maxLen
+}
+
 export const AI_BOARD_SCHEMA = {
   type: 'object',
   properties: {
