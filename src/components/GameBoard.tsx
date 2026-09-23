@@ -28,8 +28,8 @@ export function GameBoard({ board, gameStatus, guessingWord, isMaster = false, o
             cardStyle =
               'bg-emerald-950/90 border-emerald-600 text-emerald-200 shadow-emerald-900/50'
           }
-        } else if (item.type === 'spy') {
-          // 未選択の不正解は赤
+        } else if (isMaster && item.type === 'spy') {
+          // スパイマスター視点: 未選択の不正解は赤
           cardStyle =
             'bg-rose-950/90 border-rose-600 text-rose-200 shadow-rose-900/50'
         }
@@ -40,9 +40,9 @@ export function GameBoard({ board, gameStatus, guessingWord, isMaster = false, o
           <button
             key={idx}
             onClick={() => onGuess(item.word)}
-            disabled={!isPlaying || (item.revealed && !isMaster) || !!guessingWord}
+            disabled={!isPlaying || isMaster || item.revealed || !!guessingWord}
             className={`relative aspect-square p-3 rounded-xl border flex flex-col items-center justify-center text-center transition-all duration-300 transform font-medium select-none shadow-md ${cardStyle} ${
-              isSelected ? 'scale-95 opacity-80' : 'hover:-translate-y-1'
+              isSelected ? 'scale-95 opacity-80' : isMaster ? 'cursor-default' : 'hover:-translate-y-1'
             }`}
           >
             <span className="text-base sm:text-lg font-bold tracking-wide break-words max-w-full">
