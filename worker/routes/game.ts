@@ -40,7 +40,7 @@ game.post('/start/ai-hint', async (c) => {
 
   const gameState: GameState = {
     sessionId: crypto.randomUUID(),
-    mode: 'user_hint',
+    mode: 'ai_hint',
     board: rawBoard.map(item => ({ ...item, revealed: false })),
     gameStatus: 'playing',
     history: [],
