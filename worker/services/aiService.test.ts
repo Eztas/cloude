@@ -106,4 +106,25 @@ describe('aiService Unit Tests', () => {
     const result = await guessWords(mockEnv, '乗り物', 2, ['飛行機', '電車'])
     assert.strictEqual(result, null)
   })
+
+  test('guessWords - 10文字を超えるヒントや不正なヒントでAI呼び出しを行わずnullを返すこと', async () => {
+    let aiCalled = false
+    const mockEnv = {
+      WORKERS_AI_HINTS_MODEL_NAME: '@cf/meta/llama-3-instruct',
+      cloude_AI: {
+        run: async () => {
+          aiCalled = true
+          return { response: '{"guesses": ["飛行機"]}' }
+        },
+      },
+    } as unknown as Bindings
+
+    const resultOverLength = await guessWords(mockEnv, '12345678901', 1, ['飛行機'])
+    assert.strictEqual(resultOverLength, null)
+    assert.strictEqual(aiCalled, false)
+
+    const resultEmpty = await guessWords(mockEnv, '   ', 1, ['飛行機'])
+    assert.strictEqual(resultEmpty, null)
+    assert.strictEqual(aiCalled, false)
+  })
 })

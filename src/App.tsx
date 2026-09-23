@@ -1,10 +1,10 @@
 import { Button } from '@/components/ui/button'
-import { RefreshCw, AlertCircle, HelpCircle } from 'lucide-react'
+import { Switch } from '@/components/ui/switch'
+import { RefreshCw, AlertCircle } from 'lucide-react'
 import { useGame } from '@/hooks/useGame'
 import { Header } from '@/components/Header'
-import { GameBoard } from '@/components/GameBoard'
-import { GameStatusOverlay } from '@/components/GameStatusOverlay'
 import { ZennToggle } from '@/components/ZennToggle'
+import { GameScreen } from '@/components/GameScreen'
 import './App.css'
 
 function App() {
@@ -16,17 +16,14 @@ function App() {
     guessingWord,
     useZenn,
     setUseZenn,
+    mode,
+    setMode,
     handleStartGame,
     handleGuess,
+    handleAiGuess,
     handleReloadHint,
     remainingCorrect,
   } = useGame()
-
-  const currentHintDisplay = gameState?.currentHint
-    ? `${gameState.currentHint.hint}: ${gameState.currentHint.count}枚`
-    : gameState?.history.length
-      ? gameState.history[gameState.history.length - 1].hint
-      : null
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center p-4 font-sans">
@@ -43,8 +40,17 @@ function App() {
       {/* メインエリア */}
       {!gameState ? (
         <div className="flex flex-col items-center gap-6 p-8 rounded-2xl border border-slate-800 bg-slate-900/40 backdrop-blur-md max-w-md w-full text-center shadow-xl">
-          {/* Zenn トレンド利用トグル */}
-          <ZennToggle checked={useZenn} onCheckedChange={setUseZenn} />
+          {/* モード選択 ＆ Zenn トレンド利用トグル */}
+          <div className="flex flex-col gap-4 w-full">
+            <div className="flex items-center justify-between p-3 rounded-lg bg-slate-800/50 border border-slate-700">
+              <span className="text-sm font-medium">モード: {mode === 'ai_hint' ? 'AIヒント' : '人間ヒント'}</span>
+              <Switch
+                checked={mode === 'user_hint'}
+                onCheckedChange={(checked) => setMode(checked ? 'user_hint' : 'ai_hint')}
+              />
+            </div>
+            <ZennToggle checked={useZenn} onCheckedChange={setUseZenn} />
+          </div>
 
           <Button
             onClick={handleStartGame}
@@ -61,91 +67,18 @@ function App() {
           </Button>
         </div>
       ) : (
-        <main className="w-full max-w-2xl flex flex-col gap-6">
-          {/* ステータスバー */}
-          <div className="flex flex-col gap-4 p-4 rounded-xl border border-slate-800 bg-slate-900/60 backdrop-blur-sm shadow-md">
-            <div className="flex items-center justify-between">
-              <div>
-                <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider block">
-                  残り正解数
-                </span>
-                <span className="text-2xl font-bold text-sky-400">{remainingCorrect} / 7</span>
-              </div>
-
-              <Button
-                onClick={handleStartGame}
-                disabled={isLoading || isFetchingHint}
-                variant="outline"
-                size="sm"
-                className="border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200"
-              >
-                {isLoading ? (
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="w-4 h-4 mr-1" />
-                )}
-                リセット
-              </Button>
-            </div>
-
-            {/* 最新のヒント表示 ＆ 残り推測可能数 */}
-            <div className="p-4 rounded-xl bg-indigo-950/50 border border-indigo-900/60 flex items-center justify-between">
-              <div className="flex flex-col gap-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-indigo-400 font-semibold uppercase tracking-wider flex items-center gap-1.5">
-                    <HelpCircle className="w-3.5 h-3.5" />
-                    現在のヒント
-                  </span>
-                  {gameState.gameStatus === 'playing' && (
-                    <Button
-                      onClick={handleReloadHint}
-                      disabled={isFetchingHint || isLoading}
-                      variant="ghost"
-                      size="icon"
-                      className="w-6 h-6 p-0 text-indigo-400 hover:text-indigo-200 hover:bg-indigo-900/50 rounded-full"
-                      title="ヒントを再生成"
-                    >
-                      <RefreshCw className={`w-3.5 h-3.5 ${isFetchingHint ? 'animate-spin' : ''}`} />
-                    </Button>
-                  )}
-                </div>
-                {isFetchingHint ? (
-                  <span className="text-base text-indigo-300 font-medium flex items-center gap-2 animate-pulse">
-                    <RefreshCw className="w-4 h-4 animate-spin text-indigo-400" />
-                    AIが次のヒントを思考中...
-                  </span>
-                ) : (
-                  <span className="text-xl font-extrabold text-indigo-100 tracking-wide">
-                    {currentHintDisplay || 'ヒントなし'}
-                  </span>
-                )}
-              </div>
-
-              {gameState.gameStatus === 'playing' && !isFetchingHint && (
-                <div className="flex flex-col items-end">
-                  <span className="text-xs text-slate-400 font-medium">このターンの残り推測</span>
-                  <span className="text-xl font-black text-amber-400">
-                    {gameState.remainingGuesses} 回
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* 勝敗オーバーレイ表示 */}
-          <GameStatusOverlay
-            status={gameState.gameStatus}
-            reasoning={gameState.currentHint?.reasoning}
-          />
-
-          {/* 3x3 カードグリッド */}
-          <GameBoard
-            board={gameState.board}
-            gameStatus={gameState.gameStatus}
-            guessingWord={guessingWord || (isFetchingHint ? 'AI思考中' : null)}
-            onGuess={handleGuess}
-          />
-        </main>
+        <GameScreen
+          gameState={gameState}
+          mode={mode}
+          guessingWord={guessingWord}
+          isFetchingHint={isFetchingHint}
+          isLoading={isLoading}
+          remainingCorrect={remainingCorrect}
+          handleStartGame={handleStartGame}
+          handleGuess={handleGuess}
+          handleReloadHint={handleReloadHint}
+          handleAiGuess={handleAiGuess}
+        />
       )}
     </div>
   )

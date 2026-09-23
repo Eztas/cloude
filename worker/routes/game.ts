@@ -1,6 +1,6 @@
 import { Hono } from 'hono'
 import type { Bindings, GameState } from '../types.ts'
-import { parseGameState } from '../lib/validation.ts'
+import { parseGameState, isValidUserHint } from '../lib/validation.ts'
 import { generateBoardWords, generateHint, guessWords } from '../services/aiService.ts'
 import { fetchZennTitles } from '../services/zennFeed.ts'
 import { parseHintString } from '../lib/hintParser.ts'
@@ -131,6 +131,10 @@ game.post('/ai-guess', async (c) => {
   const gameState = parseGameState(gameStateString)
   if (!gameState || gameState.gameStatus !== 'playing') {
     return c.json({ error: 'Game is not in progress' }, 400)
+  }
+
+  if (!isValidUserHint(body.hint, 10) || typeof body.count !== 'number' || body.count < 1) {
+    return c.json({ error: 'Invalid hint or count' }, 400)
   }
 
   const candidateWords = gameState.board

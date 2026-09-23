@@ -1,6 +1,6 @@
 import assert from 'node:assert'
 import { describe, test } from 'node:test'
-import { parseGameState, isBoardItem, isBoardItemList, isAiGuessOutput } from './validation.ts'
+import { parseGameState, isBoardItem, isBoardItemList, isAiGuessOutput, isValidUserHint } from './validation.ts'
 
 describe('Validation Utils Unit Tests', () => {
   test('parseGameState - 正常なJSON文字列をGameStateにパースする', () => {
@@ -70,5 +70,25 @@ describe('Validation Utils Unit Tests', () => {
     assert.strictEqual(isAiGuessOutput('string'), false)
     assert.strictEqual(isAiGuessOutput(123), false)
     assert.strictEqual(isAiGuessOutput(true), false)
+  })
+
+  test('isValidUserHint - 10文字以内のヒント文字列を判定する', () => {
+    assert.strictEqual(isValidUserHint('くだもの'), true)
+    assert.strictEqual(isValidUserHint('1234567890'), true)
+    assert.strictEqual(isValidUserHint(' くだもの '), true)
+
+    // 異常系: 10文字超
+    assert.strictEqual(isValidUserHint('12345678901'), false)
+    assert.strictEqual(isValidUserHint('あいうえおかきくけこさ'), false)
+
+    // 異常系: 空文字・空白のみ
+    assert.strictEqual(isValidUserHint(''), false)
+    assert.strictEqual(isValidUserHint('   '), false)
+
+    // 異常系: 文字列以外
+    assert.strictEqual(isValidUserHint(null), false)
+    assert.strictEqual(isValidUserHint(undefined), false)
+    assert.strictEqual(isValidUserHint(123), false)
+    assert.strictEqual(isValidUserHint({}), false)
   })
 })
