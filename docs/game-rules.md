@@ -28,7 +28,47 @@
 
 ---
 
-## 3. ゲーム進行・ターンフロー (Game Lifecycle)
+## 3. カードの状態と表示ルール (Card State & Visual Rules)
+
+カードの見た目はゲームモードと `revealed` / `type` の組み合わせによって決まる。
+
+### A. AIヒントモード（プレイヤーが回答役）
+
+プレイヤーはスパイの位置を知らないため、未開封カードはすべて同じグレーで表示される。
+
+**カード色**
+
+| 状態 | 色 | 条件 |
+| :--- | :--- | :--- |
+| 未開封 | グレー | `revealed: false` |
+| 開封済み・正解 | 緑 | `revealed: true` かつ `type: 'correct'` |
+| 開封済み・スパイ | 赤 | `revealed: true` かつ `type: 'spy'` |
+
+### B. 人間ヒントモード（プレイヤーがスパイマスター役）
+
+プレイヤーはスパイの位置を把握した上でヒントを出す役なので、未開封スパイカードも赤で表示される（`isMaster: true`）。
+
+**カード色**
+
+| 状態 | 色 | 条件 |
+| :--- | :--- | :--- |
+| 未開封・正解 | グレー | `revealed: false` かつ `type: 'correct'` |
+| 未開封・スパイ | 赤 | `revealed: false` かつ `type: 'spy'` かつ `isMaster: true` |
+| 開封済み・正解 | 緑 | `revealed: true` かつ `type: 'correct'` |
+| 開封済み・スパイ | 赤 | `revealed: true` かつ `type: 'spy'` |
+
+### タイプラベルの表示（共通）
+
+開封済みカード（`revealed: true`）のみ、カード下部にタイプラベルを表示する。
+
+- 正解カード → `正解`
+- スパイカード → `スパイ`
+
+未開封カードにはラベルを表示しない（ネタバレ防止）。
+
+---
+
+## 4. ゲーム進行・ターンフロー (Game Lifecycle)
 
 ### A. AIヒントモード (AIがヒント提示 / プレイヤーが回答)
 1. **開始 (`POST /api/game/start/ai-hint`)**:
@@ -53,7 +93,7 @@
 
 ---
 
-## 4. 勝利・敗北条件 (Victory & Loss Conditions)
+## 5. 勝利・敗北条件 (Victory & Loss Conditions)
 
 | 条件 | ステータス (`gameStatus`) | 結果 |
 | :--- | :--- | :--- |
@@ -62,7 +102,7 @@
 
 ---
 
-## 5. AIの役割と制約 (AI Rules & Constraints)
+## 6. AIの役割と制約 (AI Rules & Constraints)
 
 ### 1. 単語生成 (共通)
 - 毎回異なるジャンルから選定し、合計9つの日本語名詞を生成。
