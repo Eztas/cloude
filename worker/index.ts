@@ -4,12 +4,12 @@ import gameApp from './routes/game.ts'
 
 const app = new Hono<{ Bindings: Bindings }>()
 
-app.route('/api/game', gameApp)
+const routes = app.route('/api/game', gameApp)
 
 // 存在しない API ルートへのレスポンスなど
 app.all('/api/*', (c) => {
   return c.json({ error: 'Not Found' }, 404)
 })
 
+export type AppType = typeof routes
 export default app
-
