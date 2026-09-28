@@ -1,3 +1,5 @@
+/// <reference types="@cloudflare/workers-types" />
+
 export type Bindings = {
   cloude_kv: KVNamespace
   cloude_AI: Ai
