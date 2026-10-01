@@ -1,8 +1,8 @@
 import { RefreshCw } from 'lucide-react'
-import type { BoardItem } from '@/types/game'
+import type { GameState } from '@/types/game'
 
 interface GameBoardProps {
-  board: BoardItem[]
+  board: GameState['board']
   gameStatus: 'playing' | 'won' | 'game_over'
   guessingWord: string | null
   isMaster?: boolean
