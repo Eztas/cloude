@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import type { GameState, GameMode, HintInfo } from '@/types/game'
+import type { GameState, GameMode } from '@/types/game'
 import { applyGuess } from '@/lib/gameRules'
+import { client } from '@/lib/api'
 
 export function useGame() {
   const [gameState, setGameState] = useState<GameState | null>(null)
@@ -16,17 +17,16 @@ export function useGame() {
     setIsLoading(true)
     setError(null)
     try {
-      const endpoint = mode === 'ai_hint' ? '/api/game/start/ai-hint' : '/api/game/start/user-hint'
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ useZenn }),
+      const res = await client.api.game.start[mode === 'ai_hint' ? 'ai-hint' : 'user-hint'].$post({
+        json: { useZenn },
       })
       if (!res.ok) {
-        const errData = await res.json().catch(() => ({ error: 'ゲームの開始に失敗しました' }))
+        const errData = (await res.json().catch(() => ({ error: 'ゲームの開始に失敗しました' }))) as {
+          error?: string
+        }
         throw new Error(errData.error || 'ゲームの開始に失敗しました')
       }
-      const data: GameState = await res.json()
+      const data = await res.json()
       setGameState(data)
     } catch (err) {
       setError(err instanceof Error ? err.message : '予期せぬエラーが発生しました')
@@ -48,21 +48,19 @@ export function useGame() {
 
     setIsFetchingHint(true)
     try {
-      const res = await fetch('/api/game/hint', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const res = await client.api.game.hint.$post({
+        json: {
           sessionId: currentState.sessionId,
           correctWords: remainingCorrect,
           spyWords,
-        }),
+        },
       })
 
       if (!res.ok) {
         throw new Error('ヒントの取得に失敗しました')
       }
 
-      const data: { currentHint: HintInfo; remainingGuesses: number } = await res.json()
+      const data = await res.json()
       setGameState(prev => {
         if (!prev) return null
         return {
@@ -105,17 +103,15 @@ export function useGame() {
     setIsFetchingHint(true)
     setError(null)
     try {
-      const res = await fetch('/api/game/ai-guess', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId: gameState.sessionId, hint, count }),
+      const res = await client.api.game['ai-guess'].$post({
+        json: { sessionId: gameState.sessionId, hint, count },
       })
 
       if (!res.ok) {
         throw new Error('AIの推測に失敗しました')
       }
 
-      const data: { gameState: GameState; reasoning: string } = await res.json()
+      const data = await res.json()
       setGameState(data.gameState)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'AI推測中にエラーが発生しました')
