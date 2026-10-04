@@ -13,7 +13,7 @@ type GameSearch = {
 export const Route = createFileRoute('/game')({
   validateSearch: (search: Record<string, unknown>): GameSearch => ({
     mode: search.mode === 'ai_hint' ? 'ai_hint' : 'user_hint',
-    useZenn: search.useZenn === true,
+    useZenn: search.useZenn === true || search.useZenn === 'true',
   }),
   component: GameComponent,
 })
