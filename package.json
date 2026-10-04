@@ -33,7 +33,7 @@
 		"@cloudflare/vite-plugin": "^1.47.0",
 		"@cloudflare/workers-types": "^5.20260928.1",
 		"@tailwindcss/vite": "^4.3.3",
-		"@tanstack/router-plugin": "^1.168.42",
+		"@tanstack/router-plugin": "^1.170.41",
 		"@types/node": "^24.13.2",
 		"@types/react": "^19.2.17",
 		"@types/react-dom": "^19.2.3",
