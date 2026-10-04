@@ -26,8 +26,6 @@ function GameComponent() {
     isFetchingHint,
     error,
     guessingWord,
-    setMode,
-    setUseZenn,
     handleStartGame,
     handleGuess,
     handleAiGuess,
@@ -36,11 +34,8 @@ function GameComponent() {
   } = useGame()
 
   useEffect(() => {
-    setMode(mode)
-    setUseZenn(useZenn)
-    handleStartGame()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+    handleStartGame(mode, useZenn)
+  }, [mode, useZenn, handleStartGame])
 
   if (isLoading) {
     return (
@@ -70,7 +65,7 @@ function GameComponent() {
       isFetchingHint={isFetchingHint}
       isLoading={isLoading}
       remainingCorrect={remainingCorrect}
-      handleStartGame={handleStartGame}
+      handleStartGame={() => handleStartGame(mode, useZenn)}
       handleGuess={handleGuess}
       handleReloadHint={handleReloadHint}
       handleAiGuess={handleAiGuess}

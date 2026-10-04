@@ -9,11 +9,9 @@ export function useGame() {
   const [isFetchingHint, setIsFetchingHint] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [guessingWord, setGuessingWord] = useState<string | null>(null)
-  const [useZenn, setUseZenn] = useState<boolean>(true)
-  const [mode, setMode] = useState<GameMode>('user_hint')
 
   // ゲーム開始ハンドラー
-  const handleStartGame = async () => {
+  const handleStartGame = async (mode: GameMode, useZenn: boolean) => {
     setIsLoading(true)
     setError(null)
     try {
@@ -138,10 +136,6 @@ export function useGame() {
     isFetchingHint,
     error,
     guessingWord,
-    useZenn,
-    setUseZenn,
-    mode,
-    setMode,
     handleStartGame,
     handleGuess,
     handleAiGuess,
