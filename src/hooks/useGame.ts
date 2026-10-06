@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import type { GameState, GameMode } from '@/types/game'
 import { applyGuess } from '@/lib/gameRules'
 import { client } from '@/lib/api'
@@ -11,7 +11,7 @@ export function useGame() {
   const [guessingWord, setGuessingWord] = useState<string | null>(null)
 
   // ゲーム開始ハンドラー
-  const handleStartGame = async (mode: GameMode, useZenn: boolean) => {
+  const handleStartGame = useCallback(async (mode: GameMode, useZenn: boolean) => {
     setIsLoading(true)
     setError(null)
     try {
@@ -31,7 +31,7 @@ export function useGame() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [])
 
   // 次のAIヒントを取得する関数（諜報員モード専用）
   const fetchNextHint = async (currentState: GameState) => {
