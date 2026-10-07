@@ -18,8 +18,14 @@ export const isBoardItem = (item: unknown): item is BoardItem => {
   )
 }
 
-export const isWordList = (words: unknown): words is string[] => {
-  return Array.isArray(words) && words.length === 9 && words.every(w => typeof w === 'string')
+export const isWordList = (words: unknown, expectedLength?: number): words is string[] => {
+  if (!Array.isArray(words) || words.length === 0 || !words.every(w => typeof w === 'string')) {
+    return false
+  }
+  if (expectedLength !== undefined) {
+    return words.length === expectedLength
+  }
+  return true
 }
 
 export const isBoardItemList = (items: unknown): items is BoardItem[] => {
@@ -30,19 +36,21 @@ export const isValidUserHint = (hint: unknown, maxLen = 10): hint is string => {
   return typeof hint === 'string' && hint.trim().length > 0 && hint.trim().length <= maxLen
 }
 
-export const AI_BOARD_SCHEMA = {
+export const getBoardSchema = (cardCount: number = 9) => ({
   type: 'object',
   properties: {
     words: {
       type: 'array',
-      minItems: 9,
-      maxItems: 9,
+      minItems: cardCount,
+      maxItems: cardCount,
       items: { type: 'string' },
-      description: '生成された9つの名詞単語リスト',
+      description: `生成された${cardCount}つの名詞単語リスト`,
     },
   },
   required: ['words'],
-}
+})
+
+export const AI_BOARD_SCHEMA = getBoardSchema(9)
 
 export interface AiHintOutput {
   hint: string
