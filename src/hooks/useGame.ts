@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import type { GameState, GameMode } from '@/types/game'
+import type { GameState, GameMode, CardCount } from '@/types/game'
 import { applyGuess } from '@/lib/gameRules'
 import { client } from '@/lib/api'
 
@@ -11,12 +11,12 @@ export function useGame() {
   const [guessingWord, setGuessingWord] = useState<string | null>(null)
 
   // ゲーム開始ハンドラー
-  const handleStartGame = useCallback(async (mode: GameMode, useZenn: boolean) => {
+  const handleStartGame = useCallback(async (mode: GameMode, useZenn: boolean, cardCount: CardCount = 9) => {
     setIsLoading(true)
     setError(null)
     try {
       const res = await client.api.game.start[mode === 'ai_hint' ? 'ai-hint' : 'user-hint'].$post({
-        json: { useZenn },
+        json: { useZenn, cardCount },
       })
       if (!res.ok) {
         const errData = (await res.json().catch(() => ({ error: 'ゲームの開始に失敗しました' }))) as {
