@@ -32,6 +32,29 @@ describe('GameBoard Component Tests', () => {
     )
   }
 
+  describe('グリッドレイアウト切り替えの検証', () => {
+    it('カード数に応じて適切なgrid-colsクラスが適用されること', () => {
+      const html3 = renderBoard({ board: dummyBoard })
+      assert.ok(html3.includes('grid-cols-3'))
+
+      const board16: BoardItem[] = Array.from({ length: 16 }, (_, i) => ({
+        word: `単語${i + 1}`,
+        type: 'correct',
+        revealed: false,
+      }))
+      const html16 = renderBoard({ board: board16 })
+      assert.ok(html16.includes('grid-cols-4'))
+
+      const board25: BoardItem[] = Array.from({ length: 25 }, (_, i) => ({
+        word: `単語${i + 1}`,
+        type: 'correct',
+        revealed: false,
+      }))
+      const html25 = renderBoard({ board: board25 })
+      assert.ok(html25.includes('grid-cols-5'))
+    })
+  })
+
   describe('AIヒントモード（isMaster = false）の動作検証', () => {
     it('未開封のスパイカードが赤色にハイライトされず、ネタバレしないこと', () => {
       const html = renderBoard({ isMaster: false })

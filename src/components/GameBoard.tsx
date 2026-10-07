@@ -9,11 +9,18 @@ interface GameBoardProps {
   onGuess: (word: string) => void
 }
 
+const getGridColsClass = (count: number) => {
+  if (count >= 25) return 'grid-cols-5'
+  if (count >= 16) return 'grid-cols-4'
+  return 'grid-cols-3'
+}
+
 export function GameBoard({ board, gameStatus, guessingWord, isMaster = false, onGuess }: GameBoardProps) {
   const isPlaying = gameStatus === 'playing'
+  const gridColsClass = getGridColsClass(board.length)
 
   return (
-    <div className="grid grid-cols-3 gap-3">
+    <div className={`grid ${gridColsClass} gap-2 sm:gap-3`}>
       {board.map((item, idx) => {
         const isSelected = guessingWord === item.word
 
@@ -41,23 +48,23 @@ export function GameBoard({ board, gameStatus, guessingWord, isMaster = false, o
             key={idx}
             onClick={() => onGuess(item.word)}
             disabled={!isPlaying || isMaster || item.revealed || !!guessingWord}
-            className={`relative aspect-square p-3 rounded-xl border flex flex-col items-center justify-center text-center transition-all duration-300 transform font-medium select-none shadow-md ${cardStyle} ${
+            className={`relative aspect-square p-2 sm:p-3 rounded-xl border flex flex-col items-center justify-center text-center transition-all duration-300 transform font-medium select-none shadow-md ${cardStyle} ${
               isSelected ? 'scale-95 opacity-80' : isMaster ? 'cursor-default' : 'hover:-translate-y-1'
             }`}
           >
-            <span className="text-base sm:text-lg font-bold tracking-wide break-words max-w-full">
+            <span className="text-sm sm:text-base md:text-lg font-bold tracking-wide break-words max-w-full">
               {item.word}
             </span>
 
             {showTag && (
-              <span className="mt-2 text-xs px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider bg-black/40">
+              <span className="mt-1 text-[10px] sm:text-xs px-1.5 py-0.5 rounded-full font-semibold uppercase tracking-wider bg-black/40">
                 {item.type === 'spy' ? 'スパイ' : '正解'}
               </span>
             )}
 
             {isSelected && (
               <div className="absolute inset-0 bg-slate-950/60 rounded-xl flex items-center justify-center">
-                <RefreshCw className="w-6 h-6 animate-spin text-sky-400" />
+                <RefreshCw className="w-5 h-5 sm:w-6 sm:h-6 animate-spin text-sky-400" />
               </div>
             )}
           </button>
