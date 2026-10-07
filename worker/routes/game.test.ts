@@ -37,10 +37,12 @@ describe('Game Routes Tests', () => {
           }
         }
         if (options?.response_format?.json_schema?.properties?.words) {
+          const userContent = options.messages?.find((m: any) => m.role === 'user')?.content || ''
+          const match = userContent.match(/合計(\d+)つ/)
+          const count = match ? parseInt(match[1], 10) : 9
+          const words = Array.from({ length: count }, (_, i) => `単語${i + 1}`)
           return {
-            response: {
-              words: ['単語1', '単語2', '単語3', '単語4', '単語5', '単語6', '単語7', '単語8', '単語9']
-            }
+            response: { words }
           }
         }
         if (options?.response_format?.json_schema?.properties?.guesses) {
@@ -59,18 +61,18 @@ describe('Game Routes Tests', () => {
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ useZenn: false }),
+        body: JSON.stringify({ useZenn: true, cardCount: 16 }),
       },
       mockEnv
     )
-    assert.strictEqual(res.status, 200)
 
-    const gameState = (await res.json()) as GameState
-    assert.ok(gameState.sessionId)
-    assert.strictEqual(gameState.mode, 'ai_hint')
-    assert.ok(gameState.currentHint)
-    assert.strictEqual(gameState.currentHint.hint, '果物')
-    assert.strictEqual(gameState.remainingGuesses, 2)
+    assert.strictEqual(res.status, 200)
+    const data = (await res.json()) as GameState
+    assert.strictEqual(data.mode, 'ai_hint')
+    assert.strictEqual(data.board.length, 16)
+    assert.strictEqual(data.board.filter(i => i.type === 'spy').length, 3)
+    assert.strictEqual(data.gameStatus, 'playing')
+    assert.ok(data.currentHint)
   })
 
   test('POST /start/user-hint - スパイマスターモードでゲームを開始しヒントなしで即時返却されること', async () => {

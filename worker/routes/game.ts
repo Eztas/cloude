@@ -7,14 +7,14 @@ import { parseHintString } from '../lib/hintParser.ts'
 import { assignBoardTypes } from '../lib/boardAssigner.ts'
 
 // ボード生成の共通処理
-const buildBoard = async (env: Bindings, useZenn: boolean) => {
+const buildBoard = async (env: Bindings, useZenn: boolean, cardCount: number = 9) => {
   let selectedTitles: string[] = []
   if (useZenn) {
     const zennTitles = await fetchZennTitles(env)
     const shuffledTitles = [...zennTitles].sort(() => Math.random() - 0.5)
     selectedTitles = shuffledTitles.slice(0, 3)
   }
-  const words = await generateBoardWords(env, selectedTitles)
+  const words = await generateBoardWords(env, selectedTitles, cardCount)
   if (!words) return null
   return assignBoardTypes(words)
 }
@@ -22,8 +22,8 @@ const buildBoard = async (env: Bindings, useZenn: boolean) => {
 const game = new Hono<{ Bindings: Bindings }>()
   // 諜報員モード: AIがヒントを出してプレイヤーがカードを当てる
   .post('/start/ai-hint', async (c) => {
-    const body = await c.req.json<{ useZenn?: boolean }>().catch(() => ({}) as { useZenn?: boolean })
-    const rawBoard = await buildBoard(c.env, body.useZenn ?? true)
+    const body = await c.req.json<{ useZenn?: boolean; cardCount?: number }>().catch(() => ({}) as { useZenn?: boolean; cardCount?: number })
+    const rawBoard = await buildBoard(c.env, body.useZenn ?? true, body.cardCount ?? 9)
 
     if (!rawBoard) {
       return c.json({ error: 'Failed to generate valid game board' }, 500)
@@ -52,8 +52,8 @@ const game = new Hono<{ Bindings: Bindings }>()
   })
   // スパイマスターモード: プレイヤーがヒントを出してAIがカードを当てる（ヒント生成なしで即時開始）
   .post('/start/user-hint', async (c) => {
-    const body = await c.req.json<{ useZenn?: boolean }>().catch(() => ({}) as { useZenn?: boolean })
-    const rawBoard = await buildBoard(c.env, body.useZenn ?? true)
+    const body = await c.req.json<{ useZenn?: boolean; cardCount?: number }>().catch(() => ({}) as { useZenn?: boolean; cardCount?: number })
+    const rawBoard = await buildBoard(c.env, body.useZenn ?? true, body.cardCount ?? 9)
 
     if (!rawBoard) {
       return c.json({ error: 'Failed to generate valid game board' }, 500)
