@@ -6,11 +6,12 @@ export const BOARD_SYSTEM_PROMPT = `あなたはコードネーム風カード�
 3. 【例への偏り防止】特定の分野に偏らないよう、毎回全く新しい多種多様な世界観・ジャンルから単語を選出してください。（プロンプト内の固定例には一切囚われないこと）
 4. 【安易な単語の禁止】「犬」「猫」「山」「空」「海」「リンゴ」「車」などの一般的・日常的すぎる簡単な単語は使用禁止（NG）です。`
 
-export const getBoardUserPrompt = (zennTitles: string[] = []) => {
-  if (zennTitles.length > 0) {
-    return `【Zenn記事タイトル参考リスト】\n${zennTitles.map((t, i) => `${i + 1}. ${t}`).join('\n')}\n\n上記から3タイトルの技術キーワードを選出し、残り6個は全く異なるジャンルから選出して合計9つの名詞を生成してください。`
+export const getBoardUserPrompt = (zennTitles: string[] = [], cardCount: number = 9) => {
+  const remainingCount = cardCount - 3
+  if (zennTitles.length > 0 && remainingCount > 0) {
+    return `【Zenn記事タイトル参考リスト】\n${zennTitles.map((t, i) => `${i + 1}. ${t}`).join('\n')}\n\n上記から3タイトルの技術キーワードを選出し、残り${remainingCount}個は全く異なるジャンルから選出して合計${cardCount}つの名詞を生成してください。`
   }
-  return '9つすべてが異なるジャンルから選ばれた、多岐にわたるユニークな9つの日本語名詞を生成してください。'
+  return `${cardCount}つすべてが異なるジャンルから選ばれた、多岐にわたるユニークな${cardCount}つの日本語名詞を生成してください。`
 }
 
 export const getHintSystemPrompt = (maxCount: number) => `あなたはコードネーム風カードゲームのマスターAIです。

@@ -3,23 +3,31 @@ import { useEffect } from 'react'
 import { useGame } from '@/hooks/useGame'
 import { GameScreen } from '@/components/GameScreen'
 import { RefreshCw, AlertCircle } from 'lucide-react'
-import type { GameMode } from '@/types/game'
+import type { GameMode, CardCount } from '@/types/game'
 
 type GameSearch = {
   mode: GameMode
   useZenn: boolean
+  cardCount: CardCount
+}
+
+const parseCardCount = (val: unknown): CardCount => {
+  const num = Number(val)
+  if (num === 16 || num === 25) return num
+  return 9
 }
 
 export const Route = createFileRoute('/game')({
   validateSearch: (search: Record<string, unknown>): GameSearch => ({
     mode: search.mode === 'ai_hint' ? 'ai_hint' : 'user_hint',
     useZenn: search.useZenn === true || search.useZenn === 'true',
+    cardCount: parseCardCount(search.cardCount),
   }),
   component: GameComponent,
 })
 
 function GameComponent() {
-  const { mode, useZenn } = Route.useSearch()
+  const { mode, useZenn, cardCount } = Route.useSearch()
   const {
     gameState,
     isLoading,
@@ -34,8 +42,8 @@ function GameComponent() {
   } = useGame()
 
   useEffect(() => {
-    handleStartGame(mode, useZenn)
-  }, [mode, useZenn, handleStartGame])
+    handleStartGame(mode, useZenn, cardCount)
+  }, [mode, useZenn, cardCount, handleStartGame])
 
   if (isLoading) {
     return (
@@ -65,7 +73,7 @@ function GameComponent() {
       isFetchingHint={isFetchingHint}
       isLoading={isLoading}
       remainingCorrect={remainingCorrect}
-      handleStartGame={() => handleStartGame(mode, useZenn)}
+      handleStartGame={() => handleStartGame(mode, useZenn, cardCount)}
       handleGuess={handleGuess}
       handleReloadHint={handleReloadHint}
       handleAiGuess={handleAiGuess}

@@ -1,6 +1,6 @@
 import type { Bindings, AiGuessOutput } from '../types.ts'
 import {
-  AI_BOARD_SCHEMA,
+  getBoardSchema,
   AI_HINT_SCHEMA,
   AI_GUESS_SCHEMA,
   isWordList,
@@ -22,7 +22,8 @@ import {
 
 export const generateBoardWords = async (
   env: Bindings,
-  zennTitles: string[] = []
+  zennTitles: string[] = [],
+  cardCount: number = 9
 ): Promise<string[] | null> => {
   const result = await env.cloude_AI.run(env.WORKERS_AI_WORDS_MODEL_NAME, {
     messages: [
@@ -32,12 +33,12 @@ export const generateBoardWords = async (
       },
       {
         role: 'user',
-        content: getBoardUserPrompt(zennTitles),
+        content: getBoardUserPrompt(zennTitles, cardCount),
       },
     ],
     response_format: {
       type: 'json_schema',
-      json_schema: AI_BOARD_SCHEMA,
+      json_schema: getBoardSchema(cardCount),
     },
   })
 
@@ -45,7 +46,7 @@ export const generateBoardWords = async (
   const parsedResponse = parseAiJsonResponse<{ words?: unknown }>(rawResponse)
   const rawWords = parsedResponse?.words
 
-  if (!isWordList(rawWords)) {
+  if (!isWordList(rawWords, cardCount)) {
     return null
   }
 
