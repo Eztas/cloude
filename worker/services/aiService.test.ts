@@ -34,7 +34,7 @@ describe('aiService Unit Tests', () => {
     assert.strictEqual(result.reasoning, 'コードブロック思考')
   })
 
-  test('generateBoardWords - マークダウン付きJSON文字列から単語リストを取得できること', async () => {
+  test('generateBoardWords - マークダウン付きJSON文字列から単語リストを取得できること（9枚）', async () => {
     const mockEnv = {
       WORKERS_AI_WORDS_MODEL_NAME: '@cf/meta/llama-3-instruct',
       cloude_AI: {
@@ -47,6 +47,24 @@ describe('aiService Unit Tests', () => {
     const words = await generateBoardWords(mockEnv)
     assert.strictEqual(words?.length, 9)
     assert.strictEqual(words?.[0], '1')
+  })
+
+  test('generateBoardWords - 25枚のカード生成を検証する', async () => {
+    const cardCount = 25
+    const mockWords = Array.from({ length: cardCount }, (_, i) => `${i + 1}`)
+    const mockEnv = {
+      WORKERS_AI_WORDS_MODEL_NAME: '@cf/meta/llama-3-instruct',
+      cloude_AI: {
+        run: async () => ({
+          response: `\`\`\`json\n{"words": ${JSON.stringify(mockWords)}}\n\`\`\``,
+        }),
+      },
+    } as unknown as Bindings
+
+    const words = await generateBoardWords(mockEnv, [], cardCount)
+    assert.strictEqual(words?.length, cardCount)
+    assert.strictEqual(words?.[0], '1')
+    assert.strictEqual(words?.[24], '25')
   })
 
   test('generateHint - 不正なレスポンスの場合に「ヒントなし」を返すこと', async () => {

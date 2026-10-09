@@ -1,8 +1,17 @@
 import assert from 'node:assert'
 import { describe, test } from 'node:test'
-import { parseGameState, isBoardItem, isBoardItemList, isAiGuessOutput, isValidUserHint } from './validation.ts'
+import { parseGameState, isBoardItem, isBoardItemList, isAiGuessOutput, isValidUserHint, isWordList } from './validation.ts'
 
 describe('Validation Utils Unit Tests', () => {
+  test('isWordList - 単語リストのバリデーションを行う', () => {
+    assert.strictEqual(isWordList(['word1', 'word2', 'word3']), true)
+    assert.strictEqual(isWordList(['word1', 'word2', 'word3'], 3), true)
+    assert.strictEqual(isWordList(['word1', 'word2', 'word3'], 5), false)
+    assert.strictEqual(isWordList(['word1', 123], 2), false)
+    assert.strictEqual(isWordList('not-an-array'), false)
+    assert.strictEqual(isWordList([]), false)
+  })
+
   test('parseGameState - 正常なJSON文字列をGameStateにパースする', () => {
     const jsonStr = JSON.stringify({
       sessionId: 'test-id',
