@@ -1,5 +1,5 @@
 import assert from 'node:assert'
-import { describe, test } from 'node:test'
+import { describe, test } from 'vitest'
 import { parseGameState, isBoardItem, isBoardItemList, isAiGuessOutput, isValidUserHint, isWordList } from './validation.ts'
 
 describe('Validation Utils Unit Tests', () => {

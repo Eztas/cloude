@@ -1,7 +1,7 @@
 import gameApp from './game.ts'
 import type { GameState, HintInfo } from '../types.ts'
 import assert from 'node:assert'
-import { describe, test } from 'node:test'
+import { describe, test } from 'vitest'
 
 describe('Game Routes Tests', () => {
   const mockEnv = {

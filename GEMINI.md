@@ -3,9 +3,9 @@
 This project is a web application utilizing a hybrid architecture of a React frontend and a Cloudflare Workers backend.
 
 ## Architecture
-- **Frontend:** React (TypeScript), bundled with Vite.
+- **Frontend:** React (TypeScript), TanStack Router, bundled with Vite.
 - **Backend:** Cloudflare Workers (TypeScript), Hono.
-- **Tooling:** Wrangler for deployment and development.
+- **Tooling:** Wrangler for deployment/development, Vitest for testing.
 - **Styling:** Tailwind CSS, shadcn/ui.
 - **Storage:** Cloudflare KV (Session state management).
 - **AI Integration:** Cloudflare Workers AI
@@ -13,10 +13,12 @@ This project is a web application utilizing a hybrid architecture of a React fro
 ## Development Workflow
 - **Environment:** Node.js with pnpm.
 - **Commands:**
-  - `pnpm dev`: Starts the Vite development server (includes Hono for the Worker backend).
   - `pnpm build`: Builds the frontend and prepares the worker.
   - `pnpm lint`: Runs `oxlint`.
-  - `pnpm deploy`: Builds and deploys the worker using `wrangler`.
+  - `pnpm test`: Runs tests for frontend and worker.
+  - `pnpm test:integration`: Runs worker integration tests.
+  - `pnpm test:all`: Runs all tests.
+  - `pnpm run cf-typegen`: Generates types for Cloudflare.
 
 ## Coding Standards & Conventions
 - **Language:** Strictly TypeScript.
@@ -28,6 +30,7 @@ This project is a web application utilizing a hybrid architecture of a React fro
 - Always verify type definitions (`pnpm run cf-typegen`).
 
 ## Coding Guidelines
+- Test code must be written alongside features.
 - Prefer functional React components.
 - Reuse existing utilities before creating new ones.
 - UIコンポーネントを追加・拡張する場合は shadcn/ui を使用すること（`pnpm dlx shadcn@latest add <component>`）。

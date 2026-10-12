@@ -1,9 +1,7 @@
-import { describe, it } from 'node:test'
+import { describe, it } from 'vitest'
 import assert from 'node:assert/strict'
 import React from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-// tsx実行環境でのJSX互換用
-globalThis.React = React
 import type { BoardItem } from '../types/game.ts'
 import { GameBoard } from './GameBoard.tsx'
 
