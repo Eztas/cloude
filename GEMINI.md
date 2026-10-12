@@ -13,10 +13,12 @@ This project is a web application utilizing a hybrid architecture of a React fro
 ## Development Workflow
 - **Environment:** Node.js with pnpm.
 - **Commands:**
-  - `pnpm dev`: Starts the Vite development server (includes Hono for the Worker backend).
   - `pnpm build`: Builds the frontend and prepares the worker.
   - `pnpm lint`: Runs `oxlint`.
-  - `pnpm deploy`: Builds and deploys the worker using `wrangler`.
+  - `pnpm test`: Runs tests for frontend and worker.
+  - `pnpm test:integration`: Runs worker integration tests.
+  - `pnpm test:all`: Runs all tests.
+  - `pnpm run cf-typegen`: Generates types for Cloudflare.
 
 ## Coding Standards & Conventions
 - **Language:** Strictly TypeScript.
