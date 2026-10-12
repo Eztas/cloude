@@ -1,0 +1,43 @@
+name: CI (Linter, Test, Build)
+
+on:
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - "docs/**"
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # pnpmのセットアップ
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      # Node.jsの設定とpnpmストアのキャッシュ有効化
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "lts/*"
+          cache: "pnpm"
+
+      # 依存関係のインストール（ロックファイルが厳密に一致することを確認）
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Linter (oxlint)
+      - name: Run Linter
+        run: pnpm run lint
+
+      # 型チェック & ビルド
+      - name: Run Build
+        run: pnpm run build
+
+      # Vitest 単体テスト実行 (frontend + worker)
+      - name: Run Unit Tests
+        run: pnpm test
