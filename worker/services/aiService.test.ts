@@ -1,5 +1,5 @@
 import assert from 'node:assert'
-import { describe, test } from 'node:test'
+import { describe, test } from 'vitest'
 import { generateHint, generateBoardWords, guessWords } from './aiService.ts'
 import type { Bindings } from '../types.ts'
 

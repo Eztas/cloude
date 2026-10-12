@@ -1,6 +1,6 @@
 import app from './index.ts'
 import assert from 'node:assert'
-import { describe, test } from 'node:test'
+import { describe, test } from 'vitest'
 
 describe('Worker Integration Tests', () => {
   test('ALL /api/unknown - 存在しないAPIで404を返す', async () => {
