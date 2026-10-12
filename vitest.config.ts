@@ -23,14 +23,10 @@ export default defineConfig({
         },
       },
       {
-        // --- Cloudflare Workers ---
-        plugins: [
-          cloudflareTest({
-            wrangler: { configPath: './wrangler.jsonc' },
-          }),
-        ],
+        // --- Cloudflare Workers (単体テスト: モック利用のため node 環境で実行) ---
         test: {
           name: 'worker',
+          environment: 'node',
           include: ['worker/**/!(*.integration).test.ts'],
         },
       },
