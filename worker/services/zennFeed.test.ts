@@ -1,6 +1,6 @@
 import { describe, it } from 'vitest'
 import assert from 'node:assert/strict'
-import { extractTitlesFromRss, fetchZennTitles } from './zennFeed.ts'
+import { extractTitlesFromRss, extractArticlesFromRss, fetchZennTitles, fetchZennArticles } from './zennFeed.ts'
 
 import type { Bindings } from '../types.ts'
 
@@ -69,6 +69,36 @@ describe('zennFeed Unit Tests', () => {
     })
   })
 
+  describe('extractArticlesFromRss', () => {
+    it('RSS XMLからタイトルとURLの両方を正常に抽出できること', () => {
+      const xml = `
+        <rss>
+          <channel>
+            <item>
+              <title>TypeScript 5.0解説</title>
+              <link>https://zenn.dev/dev/articles/typescript-5</link>
+            </item>
+            <item>
+              <title><![CDATA[Cloudflare入門]]></title>
+              <link><![CDATA[https://zenn.dev/dev/articles/cloudflare-intro]]></link>
+            </item>
+          </channel>
+        </rss>
+      `
+      const articles = extractArticlesFromRss(xml)
+      assert.deepEqual(articles, [
+        {
+          title: 'TypeScript 5.0解説',
+          url: 'https://zenn.dev/dev/articles/typescript-5',
+        },
+        {
+          title: 'Cloudflare入門',
+          url: 'https://zenn.dev/dev/articles/cloudflare-intro',
+        },
+      ])
+    })
+  })
+
   describe('fetchZennFeed', () => {
     const dummyEnv = {
       cloude_kv: {} as any,
@@ -82,8 +112,8 @@ describe('zennFeed Unit Tests', () => {
       const mockXml = `
         <rss>
           <channel>
-            <item><title>Zenn記事1</title></item>
-            <item><title>Zenn記事2</title></item>
+            <item><title>Zenn記事1</title><link>https://zenn.dev/1</link></item>
+            <item><title>Zenn記事2</title><link>https://zenn.dev/2</link></item>
           </channel>
         </rss>
       `
@@ -97,6 +127,12 @@ describe('zennFeed Unit Tests', () => {
       try {
         const titles = await fetchZennTitles(dummyEnv)
         assert.deepEqual(titles, ['Zenn記事1', 'Zenn記事2'])
+
+        const articles = await fetchZennArticles(dummyEnv)
+        assert.deepEqual(articles, [
+          { title: 'Zenn記事1', url: 'https://zenn.dev/1' },
+          { title: 'Zenn記事2', url: 'https://zenn.dev/2' },
+        ])
       } finally {
         globalThis.fetch = originalFetch
       }
