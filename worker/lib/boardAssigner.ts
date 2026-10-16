@@ -6,12 +6,18 @@ export const getSpyCount = (totalCards: number): number => {
   return 2
 }
 
-export const assignBoardTypes = (words: string[]): BoardItem[] => {
+export type WordInput = string | { word: string; url?: string }
+
+export const assignBoardTypes = (words: WordInput[]): BoardItem[] => {
   const spyCount = getSpyCount(words.length)
-  const shuffledWords = [...words].sort(() => Math.random() - 0.5)
-  const items: BoardItem[] = shuffledWords.map((word, index) => ({
-    word,
+  const normalizedWords = words.map(item =>
+    typeof item === 'string' ? { word: item } : item
+  )
+  const shuffledWords = [...normalizedWords].sort(() => Math.random() - 0.5)
+  const items: BoardItem[] = shuffledWords.map((item, index) => ({
+    word: item.word,
     type: index < spyCount ? 'spy' : 'correct',
+    ...(item.url ? { url: item.url } : {}),
   }))
   return items.sort(() => Math.random() - 0.5)
 }

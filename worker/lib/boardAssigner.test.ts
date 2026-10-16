@@ -35,8 +35,23 @@ describe('boardAssigner Unit Tests', () => {
     const result = assignBoardTypes(words)
 
     assert.strictEqual(result.length, 25)
-    assert.strictEqual(result.filter(item => item.type === 'spy').length, 4)
     assert.strictEqual(result.filter(item => item.type === 'correct').length, 21)
+  })
+
+  it('オブジェクト形式でurlを持つ単語を受け取った場合にurlを保持すること', () => {
+    const words = [
+      { word: 'TypeScript', url: 'https://zenn.dev/sample1' },
+      { word: 'Cloudflare', url: 'https://zenn.dev/sample2' },
+      ...Array.from({ length: 7 }, (_, i) => ({ word: `一般単語${i + 1}` })),
+    ]
+    const result = assignBoardTypes(words)
+    assert.strictEqual(result.length, 9)
+
+    const ts = result.find(i => i.word === 'TypeScript')
+    assert.strictEqual(ts?.url, 'https://zenn.dev/sample1')
+
+    const general = result.find(i => i.word === '一般単語1')
+    assert.strictEqual(general?.url, undefined)
   })
 })
 
