@@ -34,11 +34,6 @@ export function extractArticlesFromRss(xmlText: string, limit = 15): ZennArticle
   return articles.slice(0, limit)
 }
 
-// 後方互換性のためのタイトル抽出関数
-export function extractTitlesFromRss(xmlText: string, limit = 15): string[] {
-  return extractArticlesFromRss(xmlText, limit).map(a => a.title)
-}
-
 // Zennのフィードを取得して記事一覧を返す関数
 export async function fetchZennArticles(env: Bindings): Promise<ZennArticle[]> {
   try {
@@ -52,10 +47,4 @@ export async function fetchZennArticles(env: Bindings): Promise<ZennArticle[]> {
     console.error('Zennフィードの取得に失敗:', error)
     return []
   }
-}
-
-// 後方互換性のための関数
-export async function fetchZennTitles(env: Bindings): Promise<string[]> {
-  const articles = await fetchZennArticles(env)
-  return articles.map(a => a.title)
 }
