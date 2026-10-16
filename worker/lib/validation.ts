@@ -9,13 +9,14 @@ export const parseGameState = (str: string): GameState | null => {
 }
 
 export const isBoardItem = (item: unknown): item is BoardItem => {
-  return (
-    typeof item === 'object' &&
-    item !== null &&
-    typeof (item as Record<string, unknown>).word === 'string' &&
-    ((item as Record<string, unknown>).type === 'correct' ||
-      (item as Record<string, unknown>).type === 'spy')
-  )
+  if (typeof item !== 'object' || item === null) return false
+  const rec = item as Record<string, unknown>
+  const isValidBasic =
+    typeof rec.word === 'string' &&
+    (rec.type === 'correct' || rec.type === 'spy')
+  if (!isValidBasic) return false
+  if (rec.url !== undefined && typeof rec.url !== 'string') return false
+  return true
 }
 
 export const isWordList = (words: unknown, expectedLength?: number): words is string[] => {

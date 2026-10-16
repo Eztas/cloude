@@ -31,6 +31,8 @@ describe('Validation Utils Unit Tests', () => {
   test('isBoardItem - 有効なBoardItemを正確に判定する', () => {
     assert.strictEqual(isBoardItem({ word: 'みかん', type: 'correct' }), true)
     assert.strictEqual(isBoardItem({ word: 'スパイ', type: 'spy' }), true)
+    assert.strictEqual(isBoardItem({ word: 'Zenn', type: 'correct', url: 'https://zenn.dev' }), true)
+    assert.strictEqual(isBoardItem({ word: 'Zenn', type: 'correct', url: 123 }), false)
     assert.strictEqual(isBoardItem({ word: 'バナナ', type: 'invalid' }), false)
     assert.strictEqual(isBoardItem(null), false)
   })

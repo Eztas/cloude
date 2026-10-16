@@ -8,9 +8,15 @@ export type Bindings = {
   ZENN_FEED_URL: string
 }
 
+export type ZennArticle = {
+  title: string
+  url: string
+}
+
 export type BoardItem = {
   word: string
   type: 'correct' | 'spy'
+  url?: string
 }
 
 export type HintInfo = {
