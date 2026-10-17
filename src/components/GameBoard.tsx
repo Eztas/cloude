@@ -1,4 +1,4 @@
-import { RefreshCw } from 'lucide-react'
+import { RefreshCw, ExternalLink } from 'lucide-react'
 import type { GameState } from '@/types/game'
 
 interface GameBoardProps {
@@ -44,30 +44,46 @@ export function GameBoard({ board, gameStatus, guessingWord, isMaster = false, o
         const showTag = item.revealed
 
         return (
-          <button
-            key={idx}
-            onClick={() => onGuess(item.word)}
-            disabled={!isPlaying || isMaster || item.revealed || !!guessingWord}
-            className={`relative aspect-square p-2 sm:p-3 rounded-xl border flex flex-col items-center justify-center text-center transition-all duration-300 transform font-medium select-none shadow-md ${cardStyle} ${
-              isSelected ? 'scale-95 opacity-80' : isMaster ? 'cursor-default' : 'hover:-translate-y-1'
-            }`}
-          >
-            <span className="text-sm sm:text-base md:text-lg font-bold tracking-wide break-words max-w-full">
-              {item.word}
-            </span>
-
-            {showTag && (
-              <span className="mt-1 text-[10px] sm:text-xs px-1.5 py-0.5 rounded-full font-semibold uppercase tracking-wider bg-black/40">
-                {item.type === 'spy' ? 'スパイ' : '正解'}
+          <div key={idx} className="relative group">
+            <button
+              type="button"
+              onClick={() => onGuess(item.word)}
+              disabled={!isPlaying || isMaster || item.revealed || !!guessingWord}
+              className={`w-full aspect-square p-2 sm:p-3 rounded-xl border flex flex-col items-center justify-center text-center transition-all duration-300 transform font-medium select-none shadow-md ${cardStyle} ${
+                isSelected ? 'scale-95 opacity-80' : isMaster ? 'cursor-default' : 'hover:-translate-y-1'
+              }`}
+            >
+              <span className="text-sm sm:text-base md:text-lg font-bold tracking-wide break-words max-w-full">
+                {item.word}
               </span>
-            )}
 
-            {isSelected && (
-              <div className="absolute inset-0 bg-slate-950/60 rounded-xl flex items-center justify-center">
-                <RefreshCw className="w-5 h-5 sm:w-6 sm:h-6 animate-spin text-sky-400" />
-              </div>
+              {showTag && (
+                <span className="mt-1 text-[10px] sm:text-xs px-1.5 py-0.5 rounded-full font-semibold uppercase tracking-wider bg-black/40">
+                  {item.type === 'spy' ? 'スパイ' : '正解'}
+                </span>
+              )}
+
+              {isSelected && (
+                <div className="absolute inset-0 bg-slate-950/60 rounded-xl flex items-center justify-center">
+                  <RefreshCw className="w-5 h-5 sm:w-6 sm:h-6 animate-spin text-sky-400" />
+                </div>
+              )}
+            </button>
+
+            {item.url && (
+              <a
+                href={item.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="absolute top-2 right-2 p-1 rounded-md text-slate-400 hover:text-sky-300 hover:bg-slate-800/80 transition-colors z-10"
+                aria-label={`${item.word} のZenn元記事を開く`}
+                title="Zennの元記事を開く"
+              >
+                <ExternalLink className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              </a>
             )}
-          </button>
+          </div>
         )
       })}
     </div>

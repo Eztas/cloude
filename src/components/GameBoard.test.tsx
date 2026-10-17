@@ -224,4 +224,25 @@ describe('GameBoard Component Tests', () => {
       assert.ok(!sunSection.includes('bg-black/40'), '未開封カードにタグが表示されないこと')
     })
   })
+
+  describe('Zenn元記事リンクアイコンの表示検証', () => {
+    const boardWithUrl: BoardItem[] = [
+      { word: 'TypeScript', type: 'correct', revealed: false, url: 'https://zenn.dev/sample/ts' },
+      { word: '太陽', type: 'correct', revealed: false },
+    ]
+
+    it('urlが存在する場合にカード右上に外部リンクアイコン（aタグ）が表示されること', () => {
+      const html = renderBoard({ board: boardWithUrl })
+
+      assert.ok(html.includes('href="https://zenn.dev/sample/ts"'), '正しいhref属性を持つこと')
+      assert.ok(html.includes('target="_blank"'), 'target="_blank"を持つこと')
+      assert.ok(html.includes('rel="noopener noreferrer"'), 'rel="noopener noreferrer"を持つこと')
+      assert.ok(html.includes('aria-label="TypeScript のZenn元記事を開く"'), '適切なaria-labelを持つこと')
+    })
+
+    it('urlが存在しないカードにはリンクアイコンが表示されないこと', () => {
+      const html = renderBoard({ board: [{ word: '太陽', type: 'correct', revealed: false }] })
+      assert.ok(!html.includes('target="_blank"'), 'urlがない場合はaタグが存在しないこと')
+    })
+  })
 })

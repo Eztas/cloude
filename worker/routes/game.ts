@@ -2,21 +2,35 @@ import { Hono } from 'hono'
 import type { Bindings, GameState } from '../types.ts'
 import { parseGameState, isValidUserHint } from '../lib/validation.ts'
 import { generateBoardWords, generateHint, guessWords } from '../services/aiService.ts'
-import { fetchZennTitles } from '../services/zennFeed.ts'
+import { fetchZennArticles } from '../services/zennFeed.ts'
 import { parseHintString } from '../lib/hintParser.ts'
 import { assignBoardTypes } from '../lib/boardAssigner.ts'
 
 // ボード生成の共通処理
 const buildBoard = async (env: Bindings, useZenn: boolean, cardCount: number = 9) => {
-  let selectedTitles: string[] = []
+  let selectedArticles: { title: string; url: string }[] = []
   if (useZenn) {
-    const zennTitles = await fetchZennTitles(env)
-    const shuffledTitles = [...zennTitles].sort(() => Math.random() - 0.5)
-    selectedTitles = shuffledTitles.slice(0, 3)
+    const zennArticles = await fetchZennArticles(env)
+    const shuffled = [...zennArticles].sort(() => Math.random() - 0.5)
+    selectedArticles = shuffled.slice(0, 3)
   }
+  const selectedTitles = selectedArticles.map(a => a.title)
   const words = await generateBoardWords(env, selectedTitles, cardCount)
   if (!words) return null
-  return assignBoardTypes(words)
+
+  // 生成された単語のうち、Zenn記事タイトルに含まれる・または抽出元となったものにURLを紐付ける
+  const wordsWithUrl = words.map(word => {
+    const matchedArticle = selectedArticles.find(article =>
+      article.title.toLowerCase().includes(word.toLowerCase()) ||
+      word.toLowerCase().includes(article.title.toLowerCase())
+    )
+    return {
+      word,
+      ...(matchedArticle?.url ? { url: matchedArticle.url } : {}),
+    }
+  })
+
+  return assignBoardTypes(wordsWithUrl)
 }
 
 const game = new Hono<{ Bindings: Bindings }>()

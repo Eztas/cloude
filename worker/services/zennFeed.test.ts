@@ -1,28 +1,36 @@
 import { describe, it } from 'vitest'
 import assert from 'node:assert/strict'
-import { extractTitlesFromRss, fetchZennTitles } from './zennFeed.ts'
+import { extractArticlesFromRss, fetchZennArticles } from './zennFeed.ts'
 
 import type { Bindings } from '../types.ts'
 
 describe('zennFeed Unit Tests', () => {
-  describe('extractTitlesFromRss', () => {
-    it('RSS XMLから記事タイトルを正常に抽出できること', () => {
+  describe('extractArticlesFromRss', () => {
+    it('RSS XMLから記事タイトルとURLを正常に抽出できること', () => {
       const xml = `
         <rss>
           <channel>
             <item>
               <title>TypeScript 5.0の新機能解説</title>
+              <link>https://zenn.dev/articles/ts-5</link>
             </item>
             <item>
               <title>React 19での変更点まとめ</title>
+              <link>https://zenn.dev/articles/react-19</link>
             </item>
           </channel>
         </rss>
       `
-      const titles = extractTitlesFromRss(xml)
-      assert.deepEqual(titles, [
-        'TypeScript 5.0の新機能解説',
-        'React 19での変更点まとめ',
+      const articles = extractArticlesFromRss(xml)
+      assert.deepEqual(articles, [
+        {
+          title: 'TypeScript 5.0の新機能解説',
+          url: 'https://zenn.dev/articles/ts-5',
+        },
+        {
+          title: 'React 19での変更点まとめ',
+          url: 'https://zenn.dev/articles/react-19',
+        },
       ])
     })
 
@@ -32,44 +40,56 @@ describe('zennFeed Unit Tests', () => {
           <channel>
             <item>
               <title>Node &amp; Express &lt;V2&gt; &#39;Test&#39; &quot;Guide&quot;</title>
+              <link>https://zenn.dev/articles/node</link>
             </item>
           </channel>
         </rss>
       `
-      const titles = extractTitlesFromRss(xml)
-      assert.deepEqual(titles, ["Node & Express <V2> 'Test' \"Guide\""])
+      const articles = extractArticlesFromRss(xml)
+      assert.deepEqual(articles, [
+        {
+          title: "Node & Express <V2> 'Test' \"Guide\"",
+          url: 'https://zenn.dev/articles/node',
+        },
+      ])
     })
 
-    it('CDATA内のタイトルを抽出できること', () => {
+    it('CDATA内のタイトルとリンクを抽出できること', () => {
       const xml = `
         <rss>
           <channel>
             <item>
               <title><![CDATA[Vite & Cloudflare Workers構成案]]></title>
+              <link><![CDATA[https://zenn.dev/articles/vite-cloudflare]]></link>
             </item>
           </channel>
         </rss>
       `
-      const titles = extractTitlesFromRss(xml)
-      assert.deepEqual(titles, ['Vite & Cloudflare Workers構成案'])
+      const articles = extractArticlesFromRss(xml)
+      assert.deepEqual(articles, [
+        {
+          title: 'Vite & Cloudflare Workers構成案',
+          url: 'https://zenn.dev/articles/vite-cloudflare',
+        },
+      ])
     })
 
     it('指定した件数制限(limit)が機能すること', () => {
       const xml = `
         <rss>
           <channel>
-            ${Array.from({ length: 20 }, (_, i) => `<item><title>記事 ${i + 1}</title></item>`).join('\n')}
+            ${Array.from({ length: 20 }, (_, i) => `<item><title>記事 ${i + 1}</title><link>https://zenn.dev/${i + 1}</link></item>`).join('\n')}
           </channel>
         </rss>
       `
-      const titles = extractTitlesFromRss(xml, 5)
-      assert.strictEqual(titles.length, 5)
-      assert.strictEqual(titles[0], '記事 1')
-      assert.strictEqual(titles[4], '記事 5')
+      const articles = extractArticlesFromRss(xml, 5)
+      assert.strictEqual(articles.length, 5)
+      assert.strictEqual(articles[0].title, '記事 1')
+      assert.strictEqual(articles[4].title, '記事 5')
     })
   })
 
-  describe('fetchZennFeed', () => {
+  describe('fetchZennArticles', () => {
     const dummyEnv = {
       cloude_kv: {} as any,
       cloude_AI: {} as any,
@@ -78,12 +98,12 @@ describe('zennFeed Unit Tests', () => {
       ZENN_FEED_URL: 'https:/dummy.feeds',
     } satisfies Bindings
 
-    it('成功時にタイトルリストを返せること', async () => {
+    it('成功時に記事リストを返せること', async () => {
       const mockXml = `
         <rss>
           <channel>
-            <item><title>Zenn記事1</title></item>
-            <item><title>Zenn記事2</title></item>
+            <item><title>Zenn記事1</title><link>https://zenn.dev/1</link></item>
+            <item><title>Zenn記事2</title><link>https://zenn.dev/2</link></item>
           </channel>
         </rss>
       `
@@ -95,8 +115,11 @@ describe('zennFeed Unit Tests', () => {
         })) as typeof fetch
 
       try {
-        const titles = await fetchZennTitles(dummyEnv)
-        assert.deepEqual(titles, ['Zenn記事1', 'Zenn記事2'])
+        const articles = await fetchZennArticles(dummyEnv)
+        assert.deepEqual(articles, [
+          { title: 'Zenn記事1', url: 'https://zenn.dev/1' },
+          { title: 'Zenn記事2', url: 'https://zenn.dev/2' },
+        ])
       } finally {
         globalThis.fetch = originalFetch
       }
@@ -110,8 +133,8 @@ describe('zennFeed Unit Tests', () => {
         })) as typeof fetch
 
       try {
-        const titles = await fetchZennTitles(dummyEnv)
-        assert.deepEqual(titles, [])
+        const articles = await fetchZennArticles(dummyEnv)
+        assert.deepEqual(articles, [])
       } finally {
         globalThis.fetch = originalFetch
       }
@@ -124,8 +147,8 @@ describe('zennFeed Unit Tests', () => {
       }) as typeof fetch
 
       try {
-        const titles = await fetchZennTitles(dummyEnv)
-        assert.deepEqual(titles, [])
+        const articles = await fetchZennArticles(dummyEnv)
+        assert.deepEqual(articles, [])
       } finally {
         globalThis.fetch = originalFetch
       }
