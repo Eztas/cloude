@@ -90,64 +90,162 @@ describe('zennFeed Unit Tests', () => {
   })
 
   describe('fetchZennArticles', () => {
-    const dummyEnv = {
-      cloude_kv: {} as any,
-      cloude_AI: {} as any,
-      WORKERS_AI_WORDS_MODEL_NAME: 'dummy-words-model',
-      WORKERS_AI_HINTS_MODEL_NAME: 'dummy-hints-model',
-      ZENN_FEED_URL: 'https:/dummy.feeds',
-    } satisfies Bindings
+    const mockXml = `
+      <rss>
+        <channel>
+          <item><title>Zenn記事1</title><link>https://zenn.dev/1</link></item>
+          <item><title>Zenn記事2</title><link>https://zenn.dev/2</link></item>
+        </channel>
+      </rss>
+    `
+    const dummyXmlUrl = 'https://dummy.feeds'
+    const expectedArticles = [
+      { title: 'Zenn記事1', url: 'https://zenn.dev/1' },
+      { title: 'Zenn記事2', url: 'https://zenn.dev/2' },
+    ]
 
-    it('成功時に記事リストを返せること', async () => {
-      const mockXml = `
-        <rss>
-          <channel>
-            <item><title>Zenn記事1</title><link>https://zenn.dev/1</link></item>
-            <item><title>Zenn記事2</title><link>https://zenn.dev/2</link></item>
-          </channel>
-        </rss>
-      `
+    // fetchをモックして呼び出し回数を数えるヘルパー
+    const stubFetch = (response: () => Response) => {
+      let callCount = 0
       const originalFetch = globalThis.fetch
-      globalThis.fetch = (async () =>
-        new Response(mockXml, {
-          status: 200,
-          headers: { 'Content-Type': 'application/xml' },
-        })) as typeof fetch
+      globalThis.fetch = (async () => {
+        callCount += 1
+        return response()
+      }) as typeof fetch
+      return {
+        calls: () => callCount,
+        restore: () => {
+          globalThis.fetch = originalFetch
+        },
+      }
+    }
+
+    // KVのモック（put呼び出しのオプションも記録する）
+    const createKvMock = () => {
+      const store = new Map<string, string>()
+      const puts: { key: string; value: string; options?: { expirationTtl?: number } }[] = []
+      return {
+        store,
+        puts,
+        bind: {
+          get: async (key: string) => store.get(key) ?? null,
+          put: async (key: string, value: string, options?: { expirationTtl?: number }) => {
+            puts.push({ key, value, options })
+            store.set(key, value)
+          },
+        },
+      }
+    }
+
+    const createEnv = (kv: ReturnType<typeof createKvMock>['bind']) =>
+      ({
+        cloude_kv: kv as any,
+        cloude_AI: {} as any,
+        WORKERS_AI_WORDS_MODEL_NAME: 'dummy-words-model',
+        WORKERS_AI_HINTS_MODEL_NAME: 'dummy-hints-model',
+        ZENN_FEED_URL: dummyXmlUrl,
+      }) satisfies Bindings
+
+    it('成功時に記事リストを返し、TTL 7200秒（2時間）でKVにキャッシュすること', async () => {
+      const kv = createKvMock()
+      const fetchStub = stubFetch(() => new Response(mockXml, { status: 200 }))
 
       try {
-        const articles = await fetchZennArticles(dummyEnv)
-        assert.deepEqual(articles, [
-          { title: 'Zenn記事1', url: 'https://zenn.dev/1' },
-          { title: 'Zenn記事2', url: 'https://zenn.dev/2' },
+        const articles = await fetchZennArticles(createEnv(kv.bind))
+        assert.deepEqual(articles, expectedArticles)
+        assert.strictEqual(fetchStub.calls(), 1)
+        assert.deepEqual(kv.puts, [
+          {
+            key: 'zenn:trend-articles:v1',
+            value: JSON.stringify(expectedArticles),
+            options: { expirationTtl: 7200 },
+          },
         ])
       } finally {
-        globalThis.fetch = originalFetch
+        fetchStub.restore()
+      }
+    })
+
+    it('キャッシュヒット時はfetchせずキャッシュを返すこと', async () => {
+      const kv = createKvMock()
+      kv.store.set('zenn:trend-articles:v1', JSON.stringify(expectedArticles))
+      const fetchStub = stubFetch(() => new Response('', { status: 500 }))
+
+      try {
+        const articles = await fetchZennArticles(createEnv(kv.bind))
+        assert.deepEqual(articles, expectedArticles)
+        assert.strictEqual(fetchStub.calls(), 0)
+        assert.strictEqual(kv.puts.length, 0)
+      } finally {
+        fetchStub.restore()
+      }
+    })
+
+    it('KVに破損データがある場合はフェッチにフォールバックし、正常データでキャッシュを更新すること', async () => {
+      const kv = createKvMock()
+      kv.store.set('zenn:trend-articles:v1', 'not-json{')
+      const fetchStub = stubFetch(() => new Response(mockXml, { status: 200 }))
+
+      try {
+        const articles = await fetchZennArticles(createEnv(kv.bind))
+        assert.deepEqual(articles, expectedArticles)
+        assert.strictEqual(fetchStub.calls(), 1)
+        assert.deepEqual(JSON.parse(kv.store.get('zenn:trend-articles:v1') ?? ''), expectedArticles)
+      } finally {
+        fetchStub.restore()
+      }
+    })
+
+    it('RSS取得結果が空の場合はKVにキャッシュしないこと', async () => {
+      const kv = createKvMock()
+      const fetchStub = stubFetch(() => new Response('<rss><channel></channel></rss>', { status: 200 }))
+
+      try {
+        const articles = await fetchZennArticles(createEnv(kv.bind))
+        assert.deepEqual(articles, [])
+        assert.strictEqual(fetchStub.calls(), 1)
+        assert.strictEqual(kv.puts.length, 0)
+      } finally {
+        fetchStub.restore()
+      }
+    })
+
+    it('KV書き込みに失敗しても記事リストを返せること', async () => {
+      const kv = createKvMock()
+      kv.bind.put = async () => {
+        throw new Error('KV put error')
+      }
+      const fetchStub = stubFetch(() => new Response(mockXml, { status: 200 }))
+
+      try {
+        const articles = await fetchZennArticles(createEnv(kv.bind))
+        assert.deepEqual(articles, expectedArticles)
+      } finally {
+        fetchStub.restore()
       }
     })
 
     it('HTTPエラー時にエラーハンドリングされ空配列を返すこと', async () => {
-      const originalFetch = globalThis.fetch
-      globalThis.fetch = (async () =>
-        new Response('Internal Error', {
-          status: 500,
-        })) as typeof fetch
+      const kv = createKvMock()
+      const fetchStub = stubFetch(() => new Response('Internal Error', { status: 500 }))
 
       try {
-        const articles = await fetchZennArticles(dummyEnv)
+        const articles = await fetchZennArticles(createEnv(kv.bind))
         assert.deepEqual(articles, [])
       } finally {
-        globalThis.fetch = originalFetch
+        fetchStub.restore()
       }
     })
 
     it('ネットワーク例外発生時に空配列を返すこと', async () => {
+      const kv = createKvMock()
       const originalFetch = globalThis.fetch
       globalThis.fetch = (async () => {
         throw new Error('Network error')
       }) as typeof fetch
 
       try {
-        const articles = await fetchZennArticles(dummyEnv)
+        const articles = await fetchZennArticles(createEnv(kv.bind))
         assert.deepEqual(articles, [])
       } finally {
         globalThis.fetch = originalFetch
