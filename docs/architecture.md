@@ -234,9 +234,28 @@ sequenceDiagram
 
 ---
 
-## 3. KVキャッシュ構造 (Cache Data Structure)
+## 3. KV使用一覧 (KV Usage Overview)
 
-Zenn トレンド連動で使う KV キャッシュの仕様です。実装箇所は `worker/services/zennFeed.ts`。
+KV (binding 名: `cloude_kv`) は以下の **2 用途**のみで使用している。キャッシュは 3.2 のみ。フロントエンド側の localStorage 等の利用はなし。
+
+### 3.1 ゲームセッションの状態保存
+
+実装箇所: `worker/routes/game.ts`
+
+| 項目 | 値 |
+| :--- | :--- |
+| キー | `sessionId`（`crypto.randomUUID()` が生成する UUID 文字列） |
+| 値 | `GameState` の JSON 文字列 |
+| TTL | なし |
+
+- 書き込みは毎回 GameState 全体の上書きで冪等。
+- 読み取り時は `parseGameState()` でバリデーションしてから利用する。
+- **AIヒントモード**: ボードは初期状態のまま、`currentHint` / `remainingGuesses` のみ更新。カードの開示状態や勝敗はクライアント側の React state が真の状態。
+- **人間ヒントモード**: `revealed` / `history` / `gameStatus` 含め、KV 側が真の状態。
+
+### 3.2 Zenn トレンド記事キャッシュ
+
+実装箇所は `worker/services/zennFeed.ts`。
 
 | 項目 | 値 |
 | :--- | :--- |
