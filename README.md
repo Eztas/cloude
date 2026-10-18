@@ -31,10 +31,10 @@ AIがゲームマスターとなり、ユーザーが単語を推測して全正
 
 ### 3.1 技術スタック
 *   **Runtime:** Cloudflare Workers (TypeScript)
-*   **AI Model:** Cloudflare Workers AI (`@cf/meta/llama-3-8b-instruct`)
-*   **Frontend:** React (TypeScript) + TailwindCSS + shadcn/ui + React Router v7
-*   **Backend:** Hono（Cloudflare上で早い）
-*   **Storage:** Cloudflare KV (ゲームセッションの一時保管)
+*   **AI Model:** Cloudflare Workers AI
+*   **Frontend:** React (TypeScript) + TailwindCSS + shadcn/ui + Tanstack Router
+*   **Backend:** Hono
+*   **Storage:** Cloudflare KV
 * 参考: https://developers.cloudflare.com/workers/framework-guides/web-apps/react/
 
 ### 3.2 アーキテクチャ図
@@ -166,9 +166,10 @@ app.post('/api/game/guess', async (c) => {
 4.  **KV連携:** `c.env.KV` を利用したセッション管理。
 5.  **フロントエンド実装:** React アプリから Hono API を呼び出し。
 6.  **マイクロサービス化:** 必要に応じて API 毎に Worker を分割。
-7.   **バックエンド基盤構築:** Cloudflare Workers プロジェクト初期化、型定義 (`types.ts`) の実装。
-8. **ブラッシュアップ・テスト:** エラーハンドリング、ゲーム終了時の演出強化。
-
+7.  **バックエンド基盤構築:** Cloudflare Workers プロジェクト初期化、型定義 (`types.ts`) の実装。
+8.  **RPCによる型安全補強:**. マイクロサービス化をやめ、Hono RPCクライアント(hc)で型自動推論を追記
+9.  **Tanstack Router導入:** 型安全を意識したファイルベースルーティング
+10. **Vitest導入:** node:testから移行し、cloudflare上でのテストを可能にする
 
 ## 7. セットアップ手順
 
