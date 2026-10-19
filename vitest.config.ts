@@ -34,7 +34,9 @@ export default defineConfig({
         // --- Cloudflare Workers 結合テスト ---
         plugins: [
           cloudflareTest({
-            wrangler: { configPath: './wrangler.jsonc' },
+            // AIバインディングを含まないテスト専用設定。実AIを使う結合テストを
+            // 追加する際は wrangler.jsonc に戻すか新プロジェクトに隔離すること
+            wrangler: { configPath: './wrangler.vitest.jsonc' },
           }),
         ],
         test: {
