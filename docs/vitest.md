@@ -67,3 +67,10 @@
    - 引数経由で `env` をモック注入できる設計（DI・純粋関数）にしていれば、単体テストは標準の `node` 環境で走らせるのが最も堅牢で高速。
 2. **ローカルのログイン状態と CI の非対話環境のギャップに注意**:
    - wrangler はローカル認証キャッシュを透過的に使うため、CI で初めてリモートプロキシ認証必須のエラーが顕在化する。CI を意識した環境設計が不可欠。
+
+### ⑤（2026/10/19 追記）リモートプロキシ起動エラーの根本回避: テスト専用 wrangler 設定
+- **事象**: デプロイ済みドメインが Cloudflare Access の後ろに置かれた状態で `pnpm test:integration` を実行すると、AI バインディング経由のリモートプロキシセッション起動時に「no Access Service Token credentials were found」とプールごと落ちた。
+- **原因**: `cloudflareTest` は `wrangler.jsonc` の AI バインディングを検出すると、ローカル workerd では実行不能な AI をリモート（デプロイ済み Worker）にプロキシしようとする。実オンラインの結合テスト（当時は zennFeed のみ）は AI 未使用なのに、設定の存在だけでリモート接続が必須になっていた。
+- **対応**: AI バインディングを含まない**テスト専用設定 `wrangler.vitest.jsonc`**（KV + `ZENN_FEED_URL` のみ）を作成し、`vitest.config.ts` の `worker integration` プロジェクトの `configPath` に指定した。
+- **効果**: エージェント・CI 等の非対話環境でも認証情報なしで結合テストが完走する（実 KV はローカル workerd 上に実体化）。
+- **注意**: 将来的に実 AI を叩く結合テストを追加する場合は、`wrangler.vitest.jsonc` に AI バインディングを足すか、そのテストだけ `wrangler.jsonc` を指す別プロジェクトに隔離する。
