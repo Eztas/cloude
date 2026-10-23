@@ -44,7 +44,7 @@
     │   └── game.ts           # ゲーム関連API (/api/game/*)
     ├── services/             # 外部サービス連携
     │   ├── aiService.ts      # Cloudflare Workers AI の呼び出し（単語生成・ヒント生成・AI推論）
-    │   └── zennFeed.ts       # Zenn RSS フィード取得
+    │   └── zennFeed.ts       # Zenn RSS フィード取得（2時間TTLのKVキャッシュ付き）
     ├── types.ts              # バックエンド型定義
     └── index.ts              # Workerのエントリーポイント
 ```
@@ -122,8 +122,15 @@ sequenceDiagram
     Client ->> Worker: POST /api/game/start/ai-hint または /start/user-hint
 
     opt Zenn連動が有効な場合
-        Worker ->> Zenn: Zenn RSSフィードの取得・トレンド記事抽出
-        Zenn -->> Worker: 記事タイトル・URL一覧 (ランダムに3件選出)
+        Worker ->> KV: トレンド記事キャッシュの取得（キー: zenn:trend-articles:v1、TTL）
+        alt キャッシュが有効な場合
+            KV -->> Worker: キャッシュ済み記事リスト（Zennへのアクセスなし）
+        else キャッシュが期限切れ・不在の場合
+            Worker ->> Zenn: Zenn RSSフィードの取得・トレンド記事抽出
+            Zenn -->> Worker: 記事タイトル・URL一覧
+            Worker ->> KV: 記事リストをTTLでキャッシュ（空結果はキャッシュしない）
+        end
+        Note over Worker: ランダムに3件選出（キャッシュ外の毎回処理）
     end
 
     rect rgb(20, 30, 45)
@@ -224,3 +231,42 @@ sequenceDiagram
     Worker -->> Client: 更新後のGameStateとreasoningを返却
     Client -->> User: 開封結果・勝敗・AIの思考理由を表示
 ```
+
+---
+
+## 3. KV使用一覧 (KV Usage Overview)
+
+KV (binding 名: `cloude_kv`) は以下の **2 用途**のみで使用している。キャッシュは 3.2 のみ。フロントエンド側の localStorage 等の利用はなし。
+
+### 3.1 ゲームセッションの状態保存
+
+実装箇所: `worker/routes/game.ts`
+
+| 項目 | 値 |
+| :--- | :--- |
+| キー | `sessionId`（`crypto.randomUUID()` が生成する UUID 文字列） |
+| 値 | `GameState` の JSON 文字列 |
+| TTL | なし |
+
+- 書き込みは毎回 GameState 全体の上書きで冪等。
+- 読み取り時は `parseGameState()` でバリデーションしてから利用する。
+- **AIヒントモード**: ボードは初期状態のまま、`currentHint` / `remainingGuesses` のみ更新。カードの開示状態や勝敗はクライアント側の React state が真の状態。
+- **人間ヒントモード**: `revealed` / `history` / `gameStatus` 含め、KV 側が真の状態。
+
+### 3.2 Zenn トレンド記事キャッシュ
+
+実装箇所は `worker/services/zennFeed.ts`。
+
+| 項目 | 値 |
+| :--- | :--- |
+| キー | `zenn:trend-articles:v1` |
+| 値 | `ZennArticle[]` … `{ title: string, url: string }` の配列 |
+| 件数 | 最大 15 件（RSS から抽出した記事情報そのもの） |
+| TTL | 2時間 |
+
+### 注意点
+
+- **単語は含まない**: ゲーム盤面で使う単語は、ゲーム開始のたびに Workers AI が「選出された 3 件の記事タイトル」から生成する。キャッシュ保存対象ではない
+- **3 件選出もキャッシュしない**: キャッシュ済み記事プールから毎回ランダムに 3 件抽出する（`buildBoard` 内）。TTL 期間中でも盤面単語はゲームごとに変わる。キャッシュで固定されるのはネタ元の記事プールのみ
+- **空結果はキャッシュしない**: RSS 取得・パース結果が 0 件の場合は保存しない（キャッシュが空のまま TTL を引きずることを防ぐ）
+- **破損データへの耐性**: キャッシュ読み取り時に JSON パース・配列構造検証を行い、不正なら null（キャッシュミス）として RSS 取得にフォールバックする。KV 書き込み失敗時もゲーム進行は止まらない

@@ -66,6 +66,11 @@
 - 新規ロジックには単体テストを追加し、テストは 3 プロジェクトの適切な方に置く
   - AI・ RSS 等の実接続を伴うもの → `worker integration`（`pnpm test:integration`）に隔離
   - `env` はモック注入（DI）できる設計にし、単体テストで重い workerd ランタイムを起動しない
+- `worker integration`（`*.integration.test.ts`）は実バインディング（workerd）で動かす
+  - 実 `env` は `import { env } from 'cloudflare:workers'` で取得し、`env as unknown as Bindings` を介して参照。KV 等はモックではなく実バインディングで直接読み書きして検証する
+  - D1 を使うテストは `import { applyD1Migrations, type D1Migration } from 'cloudflare:test'` でマイグレーションを適用してから実行する
+  - `cloudflare:test` / `cloudflare:workers` の型は `tsconfig.worker.json` の `types` に入っている `@cloudflare/vitest-plugin/types` が解決する（削除すると型エラーになるため依存関係に注意）
+- `worker integration` の wrangler 設定は `wrangler.vitest.jsonc`（AI バインディングを除外したテスト専用設定。実 AI を使う結合テストを追加する際は設定を見直す。詳細は `docs/vitest.md`）
 - モックは外部境界（AI、RSS、KV）のみ。テスト対象自身をモックしない
 - バグ修正時はまず再現テストを書く。flaky テストは無効化せず原因を特定する
 - 実行: `pnpm test`（単体）/ `pnpm test:integration` / `pnpm test:all`

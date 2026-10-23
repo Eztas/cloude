@@ -1,0 +1,31 @@
+/**
+ * 結合テスト (project: "worker integration") 専用のwrangler設定。
+ *
+ * 本番設定 (wrangler.jsonc) からAIバインディングを除外している。
+ * 理由: AIバインディングが存在すると cloudflareTest がリモートプロキシセッションを
+ * 張ろうとし、非対話環境 (CI / エージェント実行) でCloudflare Accessの認証エラーで
+ * プール起動ごと落ちるため。現状の結合テスト (zennFeed) はAIを使わず、
+ * KVとfetchだけで完結する。
+ *
+ * 注意: 将来的に「実AIを使う結合テスト」を追加する場合は、この設定にAIバインディングを
+ * 加えるか、またはそのテストだけ wrangler.jsonc を指す別プロジェクトに隔離すること。
+ */
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "cloude-vitest",
+	"main": "worker/index.ts",
+	"compatibility_date": "2026-07-25",
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
+	"kv_namespaces": [
+		{
+			"binding": "cloude_kv",
+			"id": "2766923ccb9d47c9b39d25847735912a"
+		}
+	],
+	"vars": {
+		// 公開URLのためテスト設定に直書き（secretsではない）
+		"ZENN_FEED_URL": "https://zenn.dev/feed"
+	}
+}
