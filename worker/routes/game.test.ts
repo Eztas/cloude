@@ -152,6 +152,49 @@ describe('Game Routes Tests', () => {
     assert.ok(revealedWords.includes('りんご'))
   })
 
+  test('POST /ai-guess - スパイ直撃時もcurrentHintに当該ヒントとreasoningが反映されること', async () => {
+    // 前ターンのreasoningがKVに残っている状態を作る。ズレが起きると「前ターンのreasoning」が表示される
+    const previousHintEnv = {
+      ...mockEnv,
+      cloude_kv: {
+        ...mockEnv.cloude_kv,
+        get: async (key: string) => JSON.stringify({
+          sessionId: key,
+          mode: 'user_hint',
+          board: [
+            { word: 'りんご', type: 'correct', revealed: false },
+            { word: 'みかん', type: 'correct', revealed: false },
+            { word: '爆弾', type: 'spy', revealed: false },
+          ],
+          gameStatus: 'playing',
+          history: [],
+          currentHint: { hint: 'まえのヒント', count: 1, reasoning: '前ターンのreasoning' },
+          remainingGuesses: 0,
+        }),
+      },
+    }
+    const spyGuessEnv = {
+      ...previousHintEnv,
+      cloude_AI: {
+        run: async () => ({
+          response: { guesses: ['爆弾'], reasoning: '今ターンのreasoning' },
+        }),
+      },
+    }
+    const res = await gameApp.request('/ai-guess', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId: 'session-1', hint: 'こわい', count: 1 }),
+    }, spyGuessEnv)
+    assert.strictEqual(res.status, 200)
+
+    const json = (await res.json()) as { gameState: GameState; reasoning: string }
+    assert.strictEqual(json.gameState.gameStatus, 'game_over')
+    // 前ターンではなく今ターンのヒント・reasoningが選ばれていること
+    assert.strictEqual(json.gameState.currentHint?.hint, 'こわい')
+    assert.strictEqual(json.gameState.currentHint?.reasoning, '今ターンのreasoning')
+  })
+
   test('POST /ai-guess - セッションが存在しない場合に404を返すこと', async () => {
     const noSessionEnv = {
       ...mockEnv,
