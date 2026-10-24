@@ -178,8 +178,9 @@ const game = new Hono<{ Bindings: Bindings }>()
       }
     }
 
+    // ゲーム継続の有無に関わらず、当該ターンのヒントとreasoningを反映する（スパイ直撃時に前ターンの理由が表示されるのを防ぐ）
+    gameState.currentHint = { hint: body.hint, count: body.count, reasoning: aiResult.reasoning }
     if (gameState.gameStatus === 'playing') {
-      gameState.currentHint = { hint: body.hint, count: body.count, reasoning: aiResult.reasoning }
       gameState.remainingGuesses = 0
     }
 
